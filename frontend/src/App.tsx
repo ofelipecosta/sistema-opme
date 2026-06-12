@@ -14,6 +14,7 @@ import ImportPage from './pages/Import'
 import MaterialSeparation from './pages/MaterialSeparation'
 import SettingsPage from './pages/Settings'
 import TVDashboard from './pages/Dashboard/TVDashboard'
+import ControleCirurgias from './pages/ControleCirurgias'
 
 function TVPage() {
   const navigate = useNavigate()
@@ -51,6 +52,7 @@ function AppRoutes() {
         <Route path="usuarios/novo" element={<ProtectedRoute adminOnly><UserForm /></ProtectedRoute>} />
         <Route path="usuarios/:id/editar" element={<ProtectedRoute adminOnly><UserForm /></ProtectedRoute>} />
         <Route path="relatorios" element={<ProtectedRoute adminOnly><Reports /></ProtectedRoute>} />
+        <Route path="controle" element={<ProtectedRoute adminOnly><ControleCirurgias /></ProtectedRoute>} />
         <Route path="importar" element={<ProtectedRoute adminOnly><ImportPage /></ProtectedRoute>} />
         <Route path="configuracoes" element={<ProtectedRoute adminOnly><SettingsPage /></ProtectedRoute>} />
       </Route>

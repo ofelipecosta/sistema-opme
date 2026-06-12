@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, CalendarDays, Users, BarChart2, Stethoscope, X, LogOut, Upload, Settings, Tv, Package } from 'lucide-react'
+import { LayoutDashboard, CalendarDays, Users, BarChart2, Stethoscope, X, LogOut, Upload, Settings, Tv, Package, ClipboardList } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { cn } from '../../utils/helpers'
 
@@ -13,8 +13,9 @@ const navItems = [
   { to: '/requisicoes',   label: 'Agendamento',        icon: CalendarDays },
   { to: '/separacao',    label: 'Separação de Materiais', icon: Package },
   { to: '/usuarios',      label: 'Usuários',        icon: Users,    adminOnly: true },
-  { to: '/relatorios',    label: 'Relatórios',      icon: BarChart2, adminOnly: true },
-  { to: '/importar',      label: 'Importar Agenda', icon: Upload,   adminOnly: true },
+  { to: '/relatorios',    label: 'Relatórios',      icon: BarChart2,     adminOnly: true },
+  { to: '/controle',      label: 'Controle de Cirurgias', icon: ClipboardList, adminOnly: true },
+  { to: '/importar',      label: 'Importar Agenda', icon: Upload,        adminOnly: true },
   { to: '/configuracoes', label: 'Configurações',   icon: Settings, adminOnly: true },
 ]
 
