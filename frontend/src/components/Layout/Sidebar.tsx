@@ -15,7 +15,7 @@ const navItems = [
   { to: '/usuarios',      label: 'Usuários',        icon: Users,    adminOnly: true },
   { to: '/relatorios',    label: 'Relatórios',      icon: BarChart2,     adminOnly: true },
   { to: '/controle',      label: 'Controle de Cirurgias', icon: ClipboardList, adminOnly: true },
-  { to: '/importar',      label: 'Importar Agenda', icon: Upload,        adminOnly: true },
+  { to: '/importar',      label: 'Importar',        icon: Upload,        adminOnly: true },
   { to: '/configuracoes', label: 'Configurações',   icon: Settings, adminOnly: true },
 ]
 
