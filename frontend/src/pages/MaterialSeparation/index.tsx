@@ -533,126 +533,129 @@ function ReqCard({ req, onDeleted }: { req: Requisition; onDeleted: (id: string)
     onDeleted(req.id)
   }
 
+  const accentColor = jaFoiSeparado ? '#34C759' : emerg ? '#FF3B30' : '#007AFF'
+
   return (
     <>
-      {showConfirm && (
-        <ConfirmSepModal req={req} onConfirm={handleConfirmSep} onClose={() => setShowConfirm(false)} />
-      )}
-      {showHistorico && (
-        <HistoricoModal reqNumero={req.numero} records={historico} onClose={() => setShowHistorico(false)} />
-      )}
-      {showPrint && (
-        <PrintModal req={req} sep={sepRecord} isReprint={isReprint} onClose={() => setShowPrint(false)} />
-      )}
-      {showDelete && (
-        <DeleteConfirmModal req={req} onConfirm={handleDelete} onClose={() => setShowDelete(false)} />
-      )}
+      {showConfirm   && <ConfirmSepModal req={req} onConfirm={handleConfirmSep} onClose={() => setShowConfirm(false)} />}
+      {showHistorico && <HistoricoModal reqNumero={req.numero} records={historico} onClose={() => setShowHistorico(false)} />}
+      {showPrint     && <PrintModal req={req} sep={sepRecord} isReprint={isReprint} onClose={() => setShowPrint(false)} />}
+      {showDelete    && <DeleteConfirmModal req={req} onConfirm={handleDelete} onClose={() => setShowDelete(false)} />}
 
       <div style={{
-        background: 'rgba(255,255,255,0.88)',
-        backdropFilter: 'blur(16px)',
-        border: jaFoiSeparado
-          ? '1px solid rgba(52,199,89,0.30)'
-          : emerg
-            ? '1px solid rgba(255,59,48,0.25)'
-            : '1px solid rgba(0,0,0,0.06)',
+        background: '#fff',
+        border: `1.5px solid ${accentColor}30`,
+        borderLeft: `4px solid ${accentColor}`,
         borderRadius: 16,
         overflow: 'hidden',
-        boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+        boxShadow: '0 2px 10px rgba(0,0,0,0.06)',
       }}>
-        {/* ── Card header (info + chevron) ── */}
-        <div className="flex items-start gap-3 p-4 cursor-pointer select-none"
-          style={{ background: jaFoiSeparado ? 'rgba(52,199,89,0.04)' : emerg ? 'rgba(255,59,48,0.03)' : 'transparent' }}
-          onClick={() => setOpen(o => !o)}>
-          <div className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center mt-0.5"
-            style={{ background: jaFoiSeparado ? 'rgba(52,199,89,0.12)' : emerg ? 'rgba(255,59,48,0.12)' : 'rgba(0,122,255,0.10)' }}>
-            {jaFoiSeparado
-              ? <CheckCircle2 size={16} style={{ color: '#34C759' }} />
-              : emerg
-                ? <AlertTriangle size={16} style={{ color: '#FF3B30' }} />
-                : <Package size={16} style={{ color: '#007AFF' }} />
-            }
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap mb-1">
-              <span className="text-xs font-mono font-semibold" style={{ color: '#8E8E93' }}>{req.numero}</span>
-              {emerg && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md" style={{ background: '#FF3B30', color: '#fff' }}>EMERG.</span>}
-              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
-                style={{ background: `${statusColor(req.status)}18`, color: statusColor(req.status), border: `1px solid ${statusColor(req.status)}30` }}>
-                {statusLabel(req.status)}
+
+        {/* ── Top info row ── */}
+        <div className="px-4 pt-4 pb-3">
+          {/* Row 1: REQ number + badges */}
+          <div className="flex items-center gap-2 flex-wrap mb-2">
+            <span className="text-xs font-mono font-semibold" style={{ color: '#8E8E93' }}>{req.numero}</span>
+            {emerg && (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: '#FF3B30', color: '#fff' }}>
+                ⚡ EMERGÊNCIA
               </span>
-              {jaFoiSeparado && (
-                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
-                  style={{ background: 'rgba(52,199,89,0.12)', color: '#34C759', border: '1px solid rgba(52,199,89,0.25)' }}>
-                  ✓ Separado
-                </span>
-              )}
-            </div>
-            <p className="font-semibold text-sm truncate" style={{ color: '#1D1D1F' }}>
-              {req.pacienteNome || 'Paciente não informado'}
-            </p>
-            <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
-              {req.cirurgiaData && (
-                <span className="flex items-center gap-1 text-xs" style={{ color: '#8E8E93' }}>
-                  <Calendar size={11} /> {formatDate(req.cirurgiaData)}{req.cirurgiaHorario ? ` · ${req.cirurgiaHorario}` : ''}
-                </span>
-              )}
-              {req.hospitalNome && (
-                <span className="flex items-center gap-1 text-xs" style={{ color: '#8E8E93' }}>
-                  <Building2 size={11} /> {req.hospitalNome}
-                </span>
-              )}
-              {req.medicoNome && (
-                <span className="flex items-center gap-1 text-xs" style={{ color: '#8E8E93' }}>
-                  <Stethoscope size={11} /> {req.medicoNome}
-                </span>
-              )}
-            </div>
-            {jaFoiSeparado && sepRecord && (
-              <p className="text-xs mt-1" style={{ color: '#34C759' }}>
-                Separado por {sepRecord.separadoPorNome} em{' '}
-                {new Date(sepRecord.separadoEm).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-              </p>
+            )}
+            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+              style={{ background: `${statusColor(req.status)}15`, color: statusColor(req.status), border: `1px solid ${statusColor(req.status)}30` }}>
+              {statusLabel(req.status)}
+            </span>
+            {jaFoiSeparado && (
+              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                style={{ background: 'rgba(52,199,89,0.12)', color: '#34C759', border: '1px solid rgba(52,199,89,0.25)' }}>
+                ✓ Separado
+              </span>
             )}
           </div>
-          <div className="flex-shrink-0 mt-1" style={{ color: '#C7C7CC' }}>
-            {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+
+          {/* Row 2: Patient name */}
+          <p className="font-bold text-base leading-tight" style={{ color: '#1D1D1F' }}>
+            {req.pacienteNome || 'Paciente não informado'}
+          </p>
+
+          {/* Row 3: Surgery info chips */}
+          <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
+            {req.cirurgiaData && (
+              <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color: '#48484A' }}>
+                <Calendar size={12} style={{ color: '#8E8E93', flexShrink: 0 }} />
+                {formatDate(req.cirurgiaData)}{req.cirurgiaHorario ? ` às ${req.cirurgiaHorario}` : ''}
+              </span>
+            )}
+            {req.hospitalNome && (
+              <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color: '#48484A' }}>
+                <Building2 size={12} style={{ color: '#8E8E93', flexShrink: 0 }} />
+                {req.hospitalNome}
+              </span>
+            )}
+            {req.medicoNome && (
+              <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color: '#48484A' }}>
+                <Stethoscope size={12} style={{ color: '#8E8E93', flexShrink: 0 }} />
+                {req.medicoNome}
+              </span>
+            )}
           </div>
+
+          {/* Separação info */}
+          {jaFoiSeparado && sepRecord && (
+            <div className="mt-2 flex items-center gap-1.5 text-xs rounded-lg px-2.5 py-1.5 w-fit"
+              style={{ background: 'rgba(52,199,89,0.08)', color: '#166534' }}>
+              <CheckCircle2 size={12} />
+              Separado por <strong>{sepRecord.separadoPorNome}</strong> em{' '}
+              {new Date(sepRecord.separadoEm).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+            </div>
+          )}
         </div>
 
-        {/* ── Action buttons — linha separada para não transbordar no mobile ── */}
-        <div className="flex items-center gap-2 px-4 pb-4 flex-wrap" onClick={e => e.stopPropagation()}>
-          <span className="text-xs font-semibold px-2 py-1 rounded-lg" style={{ background: 'rgba(0,122,255,0.10)', color: '#007AFF' }}>
+        {/* ── Divider ── */}
+        <div style={{ height: 1, background: 'rgba(0,0,0,0.06)', margin: '0 16px' }} />
+
+        {/* ── Action bar ── */}
+        <div className="flex items-center gap-2 px-4 py-3 flex-wrap" onClick={e => e.stopPropagation()}>
+
+          {/* Qtd badge + expand toggle */}
+          <button
+            onClick={() => setOpen(o => !o)}
+            className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg"
+            style={{ background: 'rgba(0,122,255,0.08)', color: '#007AFF', border: '1px solid rgba(0,122,255,0.15)' }}>
+            <Package size={12} />
             {items.length} {items.length === 1 ? 'item' : 'itens'}
-          </span>
+            {open ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+          </button>
+
+          <div style={{ flex: 1 }} />
 
           {/* Histórico */}
           {historico.length > 0 && (
             <button onClick={() => setShowHistorico(true)}
-              className="w-8 h-8 rounded-xl flex items-center justify-center transition-colors"
-              style={{ background: 'rgba(0,0,0,0.04)', color: '#8E8E93' }} title="Histórico">
-              <History size={14} />
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium"
+              style={{ background: 'rgba(0,0,0,0.04)', color: '#8E8E93' }}>
+              <History size={13} /> Histórico
             </button>
           )}
 
-          {/* Separar / Segunda via */}
+          {/* Primary action: Separar ou Reimprimir */}
           {!jaFoiSeparado ? (
             <button onClick={() => setShowConfirm(true)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold"
-              style={{ background: '#34C759', color: '#fff', boxShadow: '0 2px 8px rgba(52,199,89,0.3)' }}>
-              <CheckCircle2 size={13} /> Separar
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-semibold"
+              style={{ background: '#34C759', color: '#fff', boxShadow: '0 2px 8px rgba(52,199,89,0.35)' }}>
+              <CheckCircle2 size={14} /> Confirmar Separação
             </button>
           ) : (
             <button onClick={() => openPrint(true)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold"
-              style={{ background: 'rgba(0,122,255,0.10)', color: '#007AFF', border: '1px solid rgba(0,122,255,0.2)' }}>
-              <Printer size={13} /> {sepRecord!.via}ª Via
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
+              style={{ background: 'rgba(52,199,89,0.10)', color: '#166534', border: '1px solid rgba(52,199,89,0.25)' }}>
+              <Printer size={13} /> Reimprimir ({sepRecord!.via}ª via)
             </button>
           )}
 
           {/* Imprimir */}
           <button onClick={() => openPrint(jaFoiSeparado)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
             style={{ background: '#007AFF', color: '#fff', boxShadow: '0 2px 8px rgba(0,122,255,0.3)' }}>
             <Printer size={13} /> Imprimir
           </button>
@@ -660,29 +663,28 @@ function ReqCard({ req, onDeleted }: { req: Requisition; onDeleted: (id: string)
           {/* Excluir — admin only */}
           {isAdmin && (
             <button onClick={() => setShowDelete(true)}
-              className="w-8 h-8 rounded-xl flex items-center justify-center"
-              style={{ background: 'rgba(255,59,48,0.08)', color: '#FF3B30' }} title="Excluir">
+              className="w-8 h-8 rounded-lg flex items-center justify-center"
+              style={{ background: 'rgba(255,59,48,0.07)', color: '#FF3B30' }} title="Excluir">
               <Trash2 size={14} />
             </button>
           )}
         </div>
 
-        {/* ── Materials expand ── */}
+        {/* ── Materials list (expandable) ── */}
         {open && (
           <div style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
-            <div className="flex items-center gap-2 px-4 py-2.5"
+            {/* Vendedor + procedimento */}
+            <div className="flex flex-wrap gap-x-4 gap-y-1 px-4 py-2.5"
               style={{ background: 'rgba(0,0,0,0.02)', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
-              <User size={12} style={{ color: '#8E8E93' }} />
-              <span className="text-xs" style={{ color: '#8E8E93' }}>
-                Vendedor: <strong style={{ color: '#48484A' }}>{req.vendedorNome || req.solicitanteNome || '—'}</strong>
-              </span>
+              {(req.vendedorNome || req.solicitanteNome) && (
+                <span className="flex items-center gap-1.5 text-xs" style={{ color: '#8E8E93' }}>
+                  <User size={11} /> Vendedor: <strong style={{ color: '#48484A' }}>{req.vendedorNome || req.solicitanteNome}</strong>
+                </span>
+              )}
               {req.cirurgiaProcedimento && (
-                <>
-                  <span style={{ color: '#D1D1D6' }}>·</span>
-                  <span className="text-xs" style={{ color: '#8E8E93' }}>
-                    <strong style={{ color: '#48484A' }}>{req.cirurgiaProcedimento}</strong>
-                  </span>
-                </>
+                <span className="flex items-center gap-1.5 text-xs" style={{ color: '#8E8E93' }}>
+                  <FileText size={11} /> <strong style={{ color: '#48484A' }}>{req.cirurgiaProcedimento}</strong>
+                </span>
               )}
             </div>
 
@@ -692,30 +694,31 @@ function ReqCard({ req, onDeleted }: { req: Requisition; onDeleted: (id: string)
                 <p className="text-sm" style={{ color: '#8E8E93' }}>Nenhum material cadastrado</p>
               </div>
             ) : (
-              <div>
-                <div className="grid px-4 py-2 text-[10px] font-bold uppercase tracking-wider"
-                  style={{ gridTemplateColumns: '2fr 3fr 2fr 60px 60px 36px', color: '#8E8E93', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
-                  <span>Código</span><span>Descrição</span><span>Fabricante</span>
-                  <span className="text-center">Qtd</span><span>Unid.</span>
-                  <span className="text-center">✓</span>
-                </div>
+              <div className="divide-y" style={{ borderColor: 'rgba(0,0,0,0.04)' }}>
                 {items.map((it, idx) => (
-                  <div key={it.id || idx}
-                    className="grid items-center px-4 py-3 hover:bg-black/[0.02]"
-                    style={{ gridTemplateColumns: '2fr 3fr 2fr 60px 60px 36px', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
-                    <span className="text-xs font-mono" style={{ color: '#8E8E93' }}>{it.codigo || '—'}</span>
-                    <div>
-                      <p className="text-sm font-medium" style={{ color: '#1D1D1F' }}>{it.descricao}</p>
-                      {it.observacao && <p className="text-xs mt-0.5" style={{ color: '#8E8E93' }}>Obs: {it.observacao}</p>}
-                    </div>
-                    <span className="text-xs" style={{ color: '#48484A' }}>{it.fabricante || '—'}</span>
-                    <span className="text-sm font-bold text-center" style={{ color: '#007AFF' }}>{it.quantidade}</span>
-                    <span className="text-xs font-mono text-center" style={{ color: '#8E8E93' }}>{it.unidade || 'UN'}</span>
-                    <span className="text-center text-lg" style={{ color: jaFoiSeparado ? '#34C759' : '#D1D1D6' }}>
+                  <div key={it.id || idx} className="flex items-center gap-3 px-4 py-3">
+                    {/* Check mark */}
+                    <span className="text-xl flex-shrink-0 w-6 text-center leading-none"
+                      style={{ color: jaFoiSeparado ? '#34C759' : '#D1D1D6' }}>
                       {jaFoiSeparado ? '✓' : '☐'}
                     </span>
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold" style={{ color: '#1D1D1F' }}>{it.descricao}</p>
+                      <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
+                        {it.codigo && <span className="text-xs font-mono" style={{ color: '#8E8E93' }}>{it.codigo}</span>}
+                        {it.fabricante && <span className="text-xs" style={{ color: '#8E8E93' }}>{it.fabricante}</span>}
+                        {it.observacao && <span className="text-xs italic" style={{ color: '#FF9500' }}>{it.observacao}</span>}
+                      </div>
+                    </div>
+                    {/* Qty badge */}
+                    <div className="flex-shrink-0 text-right">
+                      <span className="text-lg font-bold" style={{ color: '#007AFF' }}>{it.quantidade}</span>
+                      <span className="text-xs font-mono block leading-none" style={{ color: '#8E8E93' }}>{it.unidade || 'UN'}</span>
+                    </div>
                   </div>
                 ))}
+                {/* Totals */}
                 <div className="flex justify-end gap-6 px-4 py-2.5 text-xs font-semibold"
                   style={{ background: 'rgba(0,0,0,0.02)', color: '#48484A' }}>
                   <span>{items.length} {items.length === 1 ? 'item' : 'itens'}</span>
@@ -725,9 +728,12 @@ function ReqCard({ req, onDeleted }: { req: Requisition; onDeleted: (id: string)
             )}
 
             {req.observacoesGerais && req.observacoesGerais !== 'NÃO HÁ' && (
-              <div className="px-4 py-3" style={{ borderTop: '1px solid rgba(0,0,0,0.04)', background: 'rgba(255,149,0,0.04)' }}>
-                <p className="text-xs font-semibold mb-0.5" style={{ color: '#FF9500' }}>Observações gerais</p>
-                <p className="text-sm" style={{ color: '#48484A' }}>{req.observacoesGerais}</p>
+              <div className="px-4 py-3 flex gap-2" style={{ borderTop: '1px solid rgba(0,0,0,0.04)', background: 'rgba(255,149,0,0.04)' }}>
+                <Clock size={14} style={{ color: '#FF9500', flexShrink: 0, marginTop: 2 }} />
+                <div>
+                  <p className="text-xs font-semibold" style={{ color: '#FF9500' }}>Observações</p>
+                  <p className="text-sm mt-0.5" style={{ color: '#48484A' }}>{req.observacoesGerais}</p>
+                </div>
               </div>
             )}
           </div>
