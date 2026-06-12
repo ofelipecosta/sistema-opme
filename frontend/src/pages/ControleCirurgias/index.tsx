@@ -551,16 +551,11 @@ CREATE POLICY "allow_all" ON controle_cirurgias FOR ALL USING (true);`}
           style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.06)' }}>
           <ClipboardList size={36} className="mx-auto mb-3" style={{ color: '#D1D1D6' }} />
           <p className="font-semibold" style={{ color: '#48484A' }}>Nenhum registro encontrado</p>
-          <p className="text-sm mt-1 mb-4" style={{ color: '#8E8E93' }}>
+          <p className="text-sm mt-1" style={{ color: '#8E8E93' }}>
             {search || filterSegmento || filterSituacao || filterAcomp
-              ? 'Ajuste os filtros ou'
-              : 'Nenhuma cirurgia cadastrada em ' + MESES[filterMes] + '. '}
+              ? 'Ajuste os filtros ou adicione um novo registro pelo botão acima.'
+              : 'Nenhuma cirurgia cadastrada em ' + MESES[filterMes] + '.'}
           </p>
-          <button onClick={openNew}
-            className="px-4 py-2 rounded-xl text-sm font-semibold"
-            style={{ background: 'linear-gradient(135deg,#7a1010,#c02020)', color: '#fff' }}>
-            <Plus size={13} className="inline mr-1" /> Adicionar cirurgia
-          </button>
         </div>
       ) : (
         <>
