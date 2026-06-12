@@ -33,10 +33,11 @@ export default function RequisitionForm() {
   const { id }     = useParams()
   const { user }   = useAuth()
   const isEdit     = !!id
-  const [saving, setSaving]     = useState(false)
+  const [saving, setSaving]         = useState(false)
   const [convenioOutros, setConvenioOutros] = useState('')
   const [summaryData, setSummaryData] = useState<FormValues | null>(null)
   const [shareIntent, setShareIntent] = useState<'default' | 'whatsapp' | 'email'>('default')
+  const [savedReq, setSavedReq]     = useState<Requisition | null>(null)
 
   const settings = loadSettings()
 
@@ -102,23 +103,9 @@ export default function RequisitionForm() {
 
       if (saved) {
         await syncRequisitionToAgenda(saved)
-        /* Share based on intent or tipo */
-        const intent = shareIntent
-        setShareIntent('default')
-        if (intent === 'whatsapp') {
-          shareWhatsApp(saved)
-        } else if (intent === 'email') {
-          shareEmail(saved)
-        } else if (saved.tipoCirurgia === 'emergencia') {
-          if (settings.whatsapp.enabled) shareWhatsApp(saved)
-        } else {
-          if (settings.email.enabled) shareEmail(saved)
-        }
-        /* Automatic email notification */
-        const destinos: string[] = []
-        if (saved.vendedorEmail) destinos.push(saved.vendedorEmail)
-        if (saved.solicitanteEmail) destinos.push(saved.solicitanteEmail as string)
-        emailNovaRequisicao(saved, destinos)
+        setSavedReq(saved)
+        // não navega — mostra tela de sucesso com botão de compartilhar
+        return
       }
 
       navigate(`/requisicoes/${saved?.id || id}`)
@@ -137,8 +124,20 @@ export default function RequisitionForm() {
   return (
     <div className="max-w-lg mx-auto pb-36 sm:pb-6">
 
+      {/* Tela de sucesso com botão de compartilhar */}
+      {savedReq && (
+        <SuccessModal
+          req={savedReq}
+          onShare={() => {
+            if (savedReq.tipoCirurgia === 'emergencia') shareWhatsApp(savedReq)
+            else shareEmail(savedReq)
+          }}
+          onClose={() => navigate(`/requisicoes/${savedReq.id}`)}
+        />
+      )}
+
       {/* Summary modal */}
-      {summaryData && (
+      {!savedReq && summaryData && (
         <SummaryModal
           data={summaryData}
           convenioOutros={isOutros ? convenioOutros : ''}
@@ -284,18 +283,86 @@ export default function RequisitionForm() {
                       p-4 sm:p-0 sm:pt-4 z-20"
         style={{ background: 'rgba(255,255,255,0.95)' }}>
 
-        {/* Botão único contextual */}
+        {/* Botão Agendar */}
         <button
           type="button"
           onClick={() => handleSendClick('default')}
           disabled={saving}
-          className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-bold transition-all active:scale-95 disabled:opacity-50 text-white shadow-md ${
-            isEmergency ? 'bg-green-500 hover:bg-green-600 shadow-green-200' : 'bg-blue-500 hover:bg-blue-600 shadow-blue-200'
-          }`}
+          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-bold transition-all active:scale-95 disabled:opacity-50 text-white shadow-md"
+          style={{ background: isEmergency ? '#ef4444' : 'linear-gradient(135deg,#7a1010,#c02020)' }}
         >
-          {isEmergency ? <MessageCircle className="w-4 h-4" /> : <Mail className="w-4 h-4" />}
-          {saving ? 'Salvando…' : isEmergency ? 'Revisar e Enviar por WhatsApp' : 'Revisar e Enviar por E-mail'}
+          <CalendarDays className="w-4 h-4" />
+          {saving ? 'Salvando…' : 'Agendar'}
         </button>
+      </div>
+    </div>
+  )
+}
+
+/* ── Success Modal ── */
+function SuccessModal({ req, onShare, onClose }: {
+  req: Requisition
+  onShare: () => void
+  onClose: () => void
+}) {
+  const isEmergency = req.tipoCirurgia === 'emergencia'
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
+
+        {/* Ícone de sucesso */}
+        <div className="flex flex-col items-center pt-8 pb-4 px-6 text-center">
+          <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-4">
+            <CheckCircle2 className="w-8 h-8 text-green-500" />
+          </div>
+          <h3 className="text-lg font-bold text-slate-800">Agendamento salvo!</h3>
+          <p className="text-sm text-slate-500 mt-1">
+            {req.pacienteNome && <><strong>{req.pacienteNome}</strong> · </>}
+            {req.numero}
+          </p>
+        </div>
+
+        {/* Sugestão de compartilhamento */}
+        <div className="px-6 pb-2">
+          <div className={`rounded-2xl px-4 py-3 flex items-center gap-3 ${
+            isEmergency ? 'bg-green-50 border border-green-200' : 'bg-blue-50 border border-blue-200'
+          }`}>
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
+              isEmergency ? 'bg-green-500' : 'bg-blue-500'
+            }`}>
+              {isEmergency
+                ? <MessageCircle className="w-5 h-5 text-white" />
+                : <Mail className="w-5 h-5 text-white" />}
+            </div>
+            <div>
+              <p className={`text-sm font-bold ${isEmergency ? 'text-green-800' : 'text-blue-800'}`}>
+                {isEmergency ? 'Emergência — avise agora!' : 'Envie a confirmação por e-mail'}
+              </p>
+              <p className={`text-xs ${isEmergency ? 'text-green-600' : 'text-blue-600'}`}>
+                {isEmergency ? 'WhatsApp é mais rápido para emergências' : 'Notifique o hospital e médico'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Botões */}
+        <div className="px-6 pb-6 pt-3 flex flex-col gap-2">
+          <button
+            onClick={() => { onShare(); onClose() }}
+            className={`w-full py-3.5 rounded-2xl text-white text-sm font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition-all ${
+              isEmergency ? 'bg-green-500 hover:bg-green-600' : 'bg-blue-500 hover:bg-blue-600'
+            }`}
+          >
+            {isEmergency ? <MessageCircle className="w-4 h-4" /> : <Mail className="w-4 h-4" />}
+            {isEmergency ? 'Enviar por WhatsApp' : 'Enviar por E-mail'}
+          </button>
+          <button
+            onClick={onClose}
+            className="w-full py-3 rounded-2xl bg-slate-100 text-slate-500 text-sm font-medium hover:bg-slate-200 transition-colors"
+          >
+            Ver agendamento
+          </button>
+        </div>
       </div>
     </div>
   )
