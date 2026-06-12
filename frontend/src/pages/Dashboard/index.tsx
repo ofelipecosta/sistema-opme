@@ -127,6 +127,24 @@ export default function Dashboard() {
   return (
     <div className="space-y-5 p-0">
 
+      {/* ══ AÇÃO RÁPIDA ══ */}
+      {(canEdit || isAdmin) && (
+        <div className="flex items-center justify-between gap-3 rounded-2xl px-4 py-3.5"
+          style={{ background: 'linear-gradient(135deg, #7a1010 0%, #c02020 100%)', boxShadow: '0 4px 16px rgba(160,24,24,0.30)' }}>
+          <div className="min-w-0">
+            <p className="text-white font-bold text-sm leading-tight">Nova Cirurgia</p>
+            <p className="text-red-200 text-xs mt-0.5">Clique para abrir o formulário de agendamento</p>
+          </div>
+          <button
+            onClick={() => navigate('/requisicoes/nova')}
+            className="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white font-bold text-sm active:scale-95 transition-all"
+            style={{ color: '#a01818' }}>
+            <Plus size={16} />
+            Agendar
+          </button>
+        </div>
+      )}
+
       {/* ══ KPI STRIP ══ */}
       {hasAgenda ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
