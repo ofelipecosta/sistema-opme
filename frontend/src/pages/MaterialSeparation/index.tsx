@@ -649,7 +649,7 @@ function ReqCard({ req, onDeleted }: { req: Requisition; onDeleted: (id: string)
             <button onClick={() => openPrint(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
               style={{ background: 'rgba(52,199,89,0.10)', color: '#166534', border: '1px solid rgba(52,199,89,0.25)' }}>
-              <Printer size={13} /> Reimprimir ({sepRecord!.via}ª via)
+              <Printer size={13} /> Reimprimir
             </button>
           )}
 
