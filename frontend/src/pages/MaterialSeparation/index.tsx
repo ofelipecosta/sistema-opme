@@ -638,19 +638,18 @@ function ReqCard({ req, onDeleted }: { req: Requisition; onDeleted: (id: string)
             </button>
           )}
 
-          {/* Primary action: Separar ou Reimprimir */}
+          {/* Separar / Separado */}
           {!jaFoiSeparado ? (
             <button onClick={() => setShowConfirm(true)}
               className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-semibold"
               style={{ background: '#34C759', color: '#fff', boxShadow: '0 2px 8px rgba(52,199,89,0.35)' }}>
-              <CheckCircle2 size={14} /> Confirmar Separação
+              <CheckCircle2 size={14} /> Separar
             </button>
           ) : (
-            <button onClick={() => openPrint(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
+            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold"
               style={{ background: 'rgba(52,199,89,0.10)', color: '#166534', border: '1px solid rgba(52,199,89,0.25)' }}>
-              <Printer size={13} /> Reimprimir
-            </button>
+              <CheckCircle2 size={14} /> Separado
+            </span>
           )}
 
           {/* Imprimir */}
