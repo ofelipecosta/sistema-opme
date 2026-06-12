@@ -158,14 +158,14 @@ export default function ImportPage() {
   return (
     <div className="max-w-5xl space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="space-y-3">
         <div>
           <h2 className="text-xl font-bold text-gray-800">Importar Agenda</h2>
           <p className="text-sm text-gray-500 mt-0.5">
             Importe sua planilha de agendamento cirúrgico diretamente para o Painel TV
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button onClick={downloadTemplate} className="btn-secondary btn-sm">
             <Download className="w-4 h-4" /> Modelo Excel
           </button>
