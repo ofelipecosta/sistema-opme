@@ -584,7 +584,7 @@ export default function ImportPage() {
             </div>
             <h3 className="font-bold text-gray-800 text-base mb-1">Importar Controle de Cirurgias</h3>
             <p className="text-sm text-gray-500 leading-relaxed">
-              Importe a planilha "Controle de Cirurgias 2026" diretamente para o módulo de controle.
+              Importe a planilha "Controle de Cirurgias" diretamente para o módulo de controle.
             </p>
             <p className="text-xs text-gray-400 mt-3">
               Campos: Nº · Cód.V2 · Cirurgia · Segmento · Situação · Acompanhamento…
