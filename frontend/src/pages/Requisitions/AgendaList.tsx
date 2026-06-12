@@ -39,25 +39,25 @@ function buildWhatsAppText(item: AgendaItem): string {
   return lines
 }
 
-// Texto limpo para E-mail (sem asteriscos — cliente de e-mail não renderiza markdown)
+// Texto limpo para E-mail (sem asteriscos; usa \r\n para Android/iOS)
 function buildEmailText(item: AgendaItem): string {
   const tipo = item.emergencia ? 'EMERGÊNCIA' : 'Agendamento'
   const lines = [
     `AGENDAMENTO OPME - NOS`,
     tipo,
     ``,
-    `Data: ${fmtDate(item.data)}${item.horaCirurgia ? ' às ' + item.horaCirurgia : ''}`,
+    `Data: ${fmtDate(item.data)}${item.horaCirurgia ? ' as ' + item.horaCirurgia : ''}`,
     ``,
     `Hospital:      ${item.hospital || '-'}`,
-    `Médico:        ${item.medico || '-'}`,
+    `Medico:        ${item.medico || '-'}`,
     `Paciente:      ${item.paciente || '-'}`,
     item.procedimento ? `Procedimento:  ${item.procedimento}` : null,
-    item.convenio     ? `Convênio:      ${item.convenio}`     : null,
+    item.convenio     ? `Convenio:      ${item.convenio}`     : null,
     item.vendedor     ? `Vendedor:      ${item.vendedor}`     : null,
     ``,
     `---`,
     `Sistema OPME - Grupo NOS`,
-  ].filter((l): l is string => l !== null).join('\n')
+  ].filter((l): l is string => l !== null).join('\r\n')
   return lines
 }
 

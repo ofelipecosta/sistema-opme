@@ -560,114 +560,111 @@ function ReqCard({ req, onDeleted }: { req: Requisition; onDeleted: (id: string)
         overflow: 'hidden',
         boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
       }}>
-        {/* ── Card header ── */}
-        <div className="flex items-start justify-between gap-3 p-4 cursor-pointer select-none"
+        {/* ── Card header (info + chevron) ── */}
+        <div className="flex items-start gap-3 p-4 cursor-pointer select-none"
           style={{ background: jaFoiSeparado ? 'rgba(52,199,89,0.04)' : emerg ? 'rgba(255,59,48,0.03)' : 'transparent' }}
           onClick={() => setOpen(o => !o)}>
-          <div className="flex items-start gap-3 min-w-0 flex-1">
-            <div className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center mt-0.5"
-              style={{ background: jaFoiSeparado ? 'rgba(52,199,89,0.12)' : emerg ? 'rgba(255,59,48,0.12)' : 'rgba(0,122,255,0.10)' }}>
-              {jaFoiSeparado
-                ? <CheckCircle2 size={16} style={{ color: '#34C759' }} />
-                : emerg
-                  ? <AlertTriangle size={16} style={{ color: '#FF3B30' }} />
-                  : <Package size={16} style={{ color: '#007AFF' }} />
-              }
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 flex-wrap mb-1">
-                <span className="text-xs font-mono font-semibold" style={{ color: '#8E8E93' }}>{req.numero}</span>
-                {emerg && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md" style={{ background: '#FF3B30', color: '#fff' }}>EMERG.</span>}
+          <div className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center mt-0.5"
+            style={{ background: jaFoiSeparado ? 'rgba(52,199,89,0.12)' : emerg ? 'rgba(255,59,48,0.12)' : 'rgba(0,122,255,0.10)' }}>
+            {jaFoiSeparado
+              ? <CheckCircle2 size={16} style={{ color: '#34C759' }} />
+              : emerg
+                ? <AlertTriangle size={16} style={{ color: '#FF3B30' }} />
+                : <Package size={16} style={{ color: '#007AFF' }} />
+            }
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              <span className="text-xs font-mono font-semibold" style={{ color: '#8E8E93' }}>{req.numero}</span>
+              {emerg && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md" style={{ background: '#FF3B30', color: '#fff' }}>EMERG.</span>}
+              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                style={{ background: `${statusColor(req.status)}18`, color: statusColor(req.status), border: `1px solid ${statusColor(req.status)}30` }}>
+                {statusLabel(req.status)}
+              </span>
+              {jaFoiSeparado && (
                 <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
-                  style={{ background: `${statusColor(req.status)}18`, color: statusColor(req.status), border: `1px solid ${statusColor(req.status)}30` }}>
-                  {statusLabel(req.status)}
+                  style={{ background: 'rgba(52,199,89,0.12)', color: '#34C759', border: '1px solid rgba(52,199,89,0.25)' }}>
+                  ✓ Separado
                 </span>
-                {jaFoiSeparado && (
-                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
-                    style={{ background: 'rgba(52,199,89,0.12)', color: '#34C759', border: '1px solid rgba(52,199,89,0.25)' }}>
-                    ✓ Separado
-                  </span>
-                )}
-              </div>
-              <p className="font-semibold text-sm truncate" style={{ color: '#1D1D1F' }}>
-                {req.pacienteNome || 'Paciente não informado'}
-              </p>
-              <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
-                {req.cirurgiaData && (
-                  <span className="flex items-center gap-1 text-xs" style={{ color: '#8E8E93' }}>
-                    <Calendar size={11} /> {formatDate(req.cirurgiaData)}{req.cirurgiaHorario ? ` · ${req.cirurgiaHorario}` : ''}
-                  </span>
-                )}
-                {req.hospitalNome && (
-                  <span className="flex items-center gap-1 text-xs" style={{ color: '#8E8E93' }}>
-                    <Building2 size={11} /> {req.hospitalNome}
-                  </span>
-                )}
-                {req.medicoNome && (
-                  <span className="flex items-center gap-1 text-xs" style={{ color: '#8E8E93' }}>
-                    <Stethoscope size={11} /> {req.medicoNome}
-                  </span>
-                )}
-              </div>
-              {jaFoiSeparado && sepRecord && (
-                <p className="text-xs mt-1" style={{ color: '#34C759' }}>
-                  Separado por {sepRecord.separadoPorNome} em{' '}
-                  {new Date(sepRecord.separadoEm).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                </p>
               )}
             </div>
-          </div>
-
-          {/* Action buttons */}
-          <div className="flex items-center gap-2 flex-shrink-0 mt-0.5" onClick={e => e.stopPropagation()}>
-            <span className="text-xs font-semibold px-2 py-1 rounded-lg" style={{ background: 'rgba(0,122,255,0.10)', color: '#007AFF' }}>
-              {items.length} {items.length === 1 ? 'item' : 'itens'}
-            </span>
-
-            {/* Histórico */}
-            {historico.length > 0 && (
-              <button onClick={() => setShowHistorico(true)}
-                className="w-8 h-8 rounded-xl flex items-center justify-center transition-colors hover:bg-black/[0.05]"
-                style={{ color: '#8E8E93' }} title="Histórico de separações">
-                <History size={14} />
-              </button>
-            )}
-
-            {/* Separar / Segunda via */}
-            {!jaFoiSeparado ? (
-              <button onClick={() => setShowConfirm(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
-                style={{ background: '#34C759', color: '#fff', boxShadow: '0 2px 8px rgba(52,199,89,0.3)' }}>
-                <CheckCircle2 size={13} /> Separar
-              </button>
-            ) : (
-              <button onClick={() => openPrint(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
-                style={{ background: 'rgba(0,122,255,0.10)', color: '#007AFF', border: '1px solid rgba(0,122,255,0.2)' }}>
-                <Printer size={13} /> {sepRecord!.via}ª Via
-              </button>
-            )}
-
-            {/* Imprimir */}
-            <button onClick={() => openPrint(jaFoiSeparado)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
-              style={{ background: '#007AFF', color: '#fff', boxShadow: '0 2px 8px rgba(0,122,255,0.3)' }}>
-              <Printer size={13} /> Imprimir
-            </button>
-
-            {/* Excluir — admin only */}
-            {isAdmin && (
-              <button onClick={() => setShowDelete(true)}
-                className="w-8 h-8 rounded-xl flex items-center justify-center transition-colors hover:bg-red-50"
-                style={{ color: '#FF3B30' }} title="Excluir requisição">
-                <Trash2 size={14} />
-              </button>
-            )}
-
-            <div style={{ color: '#C7C7CC' }}>
-              {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            <p className="font-semibold text-sm truncate" style={{ color: '#1D1D1F' }}>
+              {req.pacienteNome || 'Paciente não informado'}
+            </p>
+            <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
+              {req.cirurgiaData && (
+                <span className="flex items-center gap-1 text-xs" style={{ color: '#8E8E93' }}>
+                  <Calendar size={11} /> {formatDate(req.cirurgiaData)}{req.cirurgiaHorario ? ` · ${req.cirurgiaHorario}` : ''}
+                </span>
+              )}
+              {req.hospitalNome && (
+                <span className="flex items-center gap-1 text-xs" style={{ color: '#8E8E93' }}>
+                  <Building2 size={11} /> {req.hospitalNome}
+                </span>
+              )}
+              {req.medicoNome && (
+                <span className="flex items-center gap-1 text-xs" style={{ color: '#8E8E93' }}>
+                  <Stethoscope size={11} /> {req.medicoNome}
+                </span>
+              )}
             </div>
+            {jaFoiSeparado && sepRecord && (
+              <p className="text-xs mt-1" style={{ color: '#34C759' }}>
+                Separado por {sepRecord.separadoPorNome} em{' '}
+                {new Date(sepRecord.separadoEm).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+              </p>
+            )}
           </div>
+          <div className="flex-shrink-0 mt-1" style={{ color: '#C7C7CC' }}>
+            {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </div>
+        </div>
+
+        {/* ── Action buttons — linha separada para não transbordar no mobile ── */}
+        <div className="flex items-center gap-2 px-4 pb-4 flex-wrap" onClick={e => e.stopPropagation()}>
+          <span className="text-xs font-semibold px-2 py-1 rounded-lg" style={{ background: 'rgba(0,122,255,0.10)', color: '#007AFF' }}>
+            {items.length} {items.length === 1 ? 'item' : 'itens'}
+          </span>
+
+          {/* Histórico */}
+          {historico.length > 0 && (
+            <button onClick={() => setShowHistorico(true)}
+              className="w-8 h-8 rounded-xl flex items-center justify-center transition-colors"
+              style={{ background: 'rgba(0,0,0,0.04)', color: '#8E8E93' }} title="Histórico">
+              <History size={14} />
+            </button>
+          )}
+
+          {/* Separar / Segunda via */}
+          {!jaFoiSeparado ? (
+            <button onClick={() => setShowConfirm(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold"
+              style={{ background: '#34C759', color: '#fff', boxShadow: '0 2px 8px rgba(52,199,89,0.3)' }}>
+              <CheckCircle2 size={13} /> Separar
+            </button>
+          ) : (
+            <button onClick={() => openPrint(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold"
+              style={{ background: 'rgba(0,122,255,0.10)', color: '#007AFF', border: '1px solid rgba(0,122,255,0.2)' }}>
+              <Printer size={13} /> {sepRecord!.via}ª Via
+            </button>
+          )}
+
+          {/* Imprimir */}
+          <button onClick={() => openPrint(jaFoiSeparado)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold"
+            style={{ background: '#007AFF', color: '#fff', boxShadow: '0 2px 8px rgba(0,122,255,0.3)' }}>
+            <Printer size={13} /> Imprimir
+          </button>
+
+          {/* Excluir — admin only */}
+          {isAdmin && (
+            <button onClick={() => setShowDelete(true)}
+              className="w-8 h-8 rounded-xl flex items-center justify-center"
+              style={{ background: 'rgba(255,59,48,0.08)', color: '#FF3B30' }} title="Excluir">
+              <Trash2 size={14} />
+            </button>
+          )}
         </div>
 
         {/* ── Materials expand ── */}
