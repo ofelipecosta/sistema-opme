@@ -406,7 +406,7 @@ export default function AgendaList() {
                             <Edit2 className="w-3.5 h-3.5" />
                           </button>
                           <button onClick={() => handleDelete(item)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors" title="Excluir">
+                            className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors" title="Excluir">
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
