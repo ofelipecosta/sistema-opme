@@ -1,0 +1,151 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  admin
+  vendedor
+  operacional
+  consulta
+}
+
+enum UserStatus {
+  ativo
+  inativo
+}
+
+enum SurgeryType {
+  eletiva
+  emergencia
+}
+
+enum RequisitionStatus {
+  rascunho
+  enviada
+  em_analise
+  aprovada
+  separacao_material
+  material_enviado
+  finalizada
+  cancelada
+}
+
+model User {
+  id         String     @id @default(uuid())
+  nome       String
+  email      String     @unique
+  telefone   String?
+  cargo      String?
+  empresa    String?
+  login      String     @unique
+  senha      String
+  perfil     UserRole   @default(vendedor)
+  status     UserStatus @default(ativo)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  requisitions  Requisition[] @relation("Solicitante")
+  auditLogs     AuditLog[]
+
+  @@map("users")
+}
+
+model Requisition {
+  id                      String            @id @default(uuid())
+  numero                  String            @unique
+  tipoCirurgia            SurgeryType       @default(eletiva)
+  status                  RequisitionStatus @default(rascunho)
+  datasolicitacao         DateTime          @default(now())
+
+  solicitanteId           String
+  solicitante             User              @relation("Solicitante", fields: [solicitanteId], references: [id])
+
+  vendedorNome            String?
+  vendedorTelefone        String?
+  vendedorEmail           String?
+
+  hospitalNome            String?
+  hospitalCidade          String?
+  hospitalEstado          String?
+  hospitalSetor           String?
+  hospitalCentroCirurgico String?
+  hospitalContato         String?
+
+  medicoNome              String?
+  medicoEspecialidade     String?
+  medicoCRM               String?
+
+  pacienteNome            String?
+  pacienteDataNascimento  DateTime?
+  pacienteProntuario      String?
+  pacienteSexo            String?
+
+  instrumentadorNome      String?
+  instrumentadorTelefone  String?
+  instrumentadorEmpresa   String?
+
+  cirurgiaData            DateTime?
+  cirurgiaHorario         String?
+  cirurgiaProcedimento    String?
+  cirurgiaConvenio        String?
+  cirurgiaCodTUSS         String?
+  cirurgiaSala            String?
+
+  observacoesGerais       String?           @db.Text
+
+  materiais               OPMEItem[]
+  anexos                  Attachment[]
+  auditoria               AuditLog[]
+
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
+
+  @@map("requisitions")
+}
+
+model OPMEItem {
+  id            String      @id @default(uuid())
+  requisicaoId  String
+  requisicao    Requisition @relation(fields: [requisicaoId], references: [id], onDelete: Cascade)
+  codigo        String?
+  descricao     String
+  fabricante    String?
+  quantidade    Int         @default(1)
+  unidade       String      @default("UN")
+  observacao    String?
+
+  @@map("opme_items")
+}
+
+model Attachment {
+  id            String      @id @default(uuid())
+  requisicaoId  String
+  requisicao    Requisition @relation(fields: [requisicaoId], references: [id], onDelete: Cascade)
+  nome          String
+  tipo          String
+  tamanho       Int
+  path          String
+  uploadedBy    String
+  createdAt     DateTime    @default(now())
+
+  @@map("attachments")
+}
+
+model AuditLog {
+  id            String      @id @default(uuid())
+  requisicaoId  String
+  requisicao    Requisition @relation(fields: [requisicaoId], references: [id], onDelete: Cascade)
+  usuarioId     String
+  usuario       User        @relation(fields: [usuarioId], references: [id])
+  acao          String
+  detalhes      String?
+  ip            String?
+  createdAt     DateTime    @default(now())
+
+  @@map("audit_logs")
+}

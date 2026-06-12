@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm --version)",
+      "PowerShell(node --version)",
+      "PowerShell(npm --version)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(ls \"/c/Program Files/nodejs/\")",
+      "Read(//c/Users/Felipe Costa/Desktop/**)",
+      "Bash('C:\\\\Program Files\\\\nodejs\\\\node.exe' -e ' *)",
+      "Bash(npm install *)",
+      "Bash(npm list *)",
+      "Bash(npx kill-port *)",
+      "Bash(npm run *)",
+      "Bash(curl -s http://localhost:3000)",
+      "Bash(git init *)"
+    ]
+  }
+}
