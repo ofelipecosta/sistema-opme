@@ -12,7 +12,7 @@ import {
 import { agendaStatusLabel, agendaStatusBg } from '../../utils/agenda-helpers'
 import type { AgendaItem } from '../../types/agenda'
 import { formatDate } from '../../utils/helpers'
-import { bulkInsertControleCirurgias } from '../../utils/controle-storage'
+import { bulkInsertControleCirurgias, clearControleCirurgias, countControleCirurgias } from '../../utils/controle-storage'
 import type { ControleCirurgia, SegmentoCirurgia, SituacaoCirurgia, AcompanhamentoCirurgia } from '../../types/controle'
 import { SEGMENTO_LABELS, SITUACAO_LABELS, ACOMPANHAMENTO_LABELS } from '../../types/controle'
 
@@ -348,6 +348,8 @@ function ControleImport() {
   const [preview, setPreview]           = useState<Partial<ControleCirurgia>[]>([])
   const [fileName, setFileName]         = useState('')
   const [importedCount, setImportedCount] = useState(0)
+  const [existingCount, setExistingCount] = useState(0)
+  useEffect(() => { countControleCirurgias().then(setExistingCount) }, [])
 
   async function processFile(file: File) {
     if (!file.name.match(/\.(xlsx|xls|csv)$/i)) { toast.error('Selecione .xlsx, .xls ou .csv'); return }
@@ -417,6 +419,14 @@ function ControleImport() {
 
   function reset() { setStep('upload'); setPreview([]); setHeaders([]); setColMap({}); setFileName(''); setAllRows([]) }
 
+  async function handleClear() {
+    if (!confirm(`Limpar todos os ${existingCount} registros do Controle de Cirurgias?`)) return
+    await clearControleCirurgias()
+    setExistingCount(0)
+    toast.success('Controle de Cirurgias limpo')
+    reset()
+  }
+
   function downloadTemplate() {
     import('xlsx').then(XLSX => {
       const ws = XLSX.utils.aoa_to_sheet([
@@ -432,6 +442,11 @@ function ControleImport() {
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
         <button onClick={downloadTemplate} className="btn-secondary btn-sm"><Download className="w-4 h-4" /> Modelo Excel</button>
+        {existingCount > 0 && (
+          <button onClick={handleClear} className="btn-danger btn-sm">
+            <Trash2 className="w-4 h-4" /> Limpar controle ({existingCount})
+          </button>
+        )}
       </div>
 
       <StepsBar step={step} />

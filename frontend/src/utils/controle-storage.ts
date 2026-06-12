@@ -83,3 +83,35 @@ export async function deleteControleCirurgia(id: string): Promise<void> {
   const { error } = await supabase.from('controle_cirurgias').delete().eq('id', id)
   if (error) throw error
 }
+
+export async function clearControleCirurgias(): Promise<void> {
+  const { error } = await supabase.from('controle_cirurgias').delete().neq('id', '')
+  if (error) throw error
+}
+
+export async function countControleCirurgias(): Promise<number> {
+  const { count, error } = await supabase.from('controle_cirurgias').select('*', { count: 'exact', head: true })
+  if (error) throw error
+  return count ?? 0
+}
+
+export async function bulkInsertControleCirurgias(
+  items: Omit<ControleCirurgia, 'id' | 'createdAt' | 'updatedAt'>[],
+): Promise<number> {
+  if (!items.length) return 0
+  const now = new Date().toISOString()
+  const rows = items.map(item => ({
+    id: genId(),
+    ...itemToDb(item),
+    created_at: now,
+    updated_at: now,
+  }))
+  const CHUNK = 200
+  let inserted = 0
+  for (let i = 0; i < rows.length; i += CHUNK) {
+    const { error } = await supabase.from('controle_cirurgias').insert(rows.slice(i, i + CHUNK))
+    if (error) throw error
+    inserted += Math.min(CHUNK, rows.length - i)
+  }
+  return inserted
+}
