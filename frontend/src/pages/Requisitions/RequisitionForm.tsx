@@ -284,46 +284,18 @@ export default function RequisitionForm() {
                       p-4 sm:p-0 sm:pt-4 z-20"
         style={{ background: 'rgba(255,255,255,0.95)' }}>
 
-        {/* Primary send button */}
+        {/* Botão único contextual */}
         <button
           type="button"
           onClick={() => handleSendClick('default')}
           disabled={saving}
-          className={`w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-bold transition-all active:scale-95 disabled:opacity-50 text-white shadow-md mb-2.5 ${
-            isEmergency ? 'bg-red-500 hover:bg-red-600 shadow-red-200' : 'bg-primary-600 hover:bg-primary-700 shadow-primary-200'
+          className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-bold transition-all active:scale-95 disabled:opacity-50 text-white shadow-md ${
+            isEmergency ? 'bg-green-500 hover:bg-green-600 shadow-green-200' : 'bg-blue-500 hover:bg-blue-600 shadow-blue-200'
           }`}
         >
           {isEmergency ? <MessageCircle className="w-4 h-4" /> : <Mail className="w-4 h-4" />}
-          {saving ? 'Enviando…' : 'Enviar'}
-          <span className="text-xs opacity-60 font-normal hidden sm:inline">({sendChannel})</span>
+          {saving ? 'Salvando…' : isEmergency ? 'Revisar e Enviar por WhatsApp' : 'Revisar e Enviar por E-mail'}
         </button>
-
-        {/* Manual share buttons */}
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => handleSendClick('whatsapp')}
-            disabled={saving}
-            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-2xl text-sm font-semibold transition-all active:scale-95 disabled:opacity-50"
-            style={{ background: 'rgba(37,211,102,0.10)', color: '#16a34a', border: '1px solid rgba(37,211,102,0.25)' }}
-          >
-            <MessageCircle className="w-4 h-4" />
-            WhatsApp
-          </button>
-          <button
-            type="button"
-            onClick={() => handleSendClick('email')}
-            disabled={saving}
-            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-2xl text-sm font-semibold transition-all active:scale-95 disabled:opacity-50"
-            style={{ background: 'rgba(0,122,255,0.08)', color: '#007AFF', border: '1px solid rgba(0,122,255,0.18)' }}
-          >
-            <Mail className="w-4 h-4" />
-            E-mail
-          </button>
-        </div>
-        <p className="text-center text-[11px] mt-2" style={{ color: '#AEAEB2' }}>
-          WhatsApp e E-mail abrem o compartilhamento manual
-        </p>
       </div>
     </div>
   )
