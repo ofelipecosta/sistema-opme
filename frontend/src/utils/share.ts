@@ -67,12 +67,21 @@ export function shareWhatsApp(req: Requisition): void {
       body: JSON.stringify({ phone, message: formatRequisitionMessage(req) }),
     }).catch(console.error)
   } else {
-    // wa.me link (padrão — abre no browser/app)
     const phone = settings.whatsapp.defaultPhone.replace(/\D/g, '')
-    const url = phone
-      ? `https://wa.me/${phone}?text=${encoded}`
-      : `https://wa.me/?text=${encoded}`
-    window.open(url, '_blank')
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+    if (isMobile) {
+      // Mobile: wa.me abre o app diretamente
+      const url = phone
+        ? `https://wa.me/${phone}?text=${encoded}`
+        : `https://wa.me/?text=${encoded}`
+      window.open(url, '_blank')
+    } else {
+      // Desktop: whatsapp:// abre o app instalado sem página intermediária
+      const url = phone
+        ? `whatsapp://send?phone=${phone}&text=${encoded}`
+        : `whatsapp://send?text=${encoded}`
+      window.location.href = url
+    }
   }
 }
 
