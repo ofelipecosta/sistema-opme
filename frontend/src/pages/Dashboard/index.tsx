@@ -4,6 +4,7 @@ import {
   Activity, AlertTriangle, CheckCircle2, Clock, FileText,
   Building2, TrendingUp, ArrowRight, Plus,
   CalendarClock, Stethoscope, ShieldCheck, Upload, X, User,
+  ClipboardList, Layers, Zap, XCircle, CalendarDays,
 } from 'lucide-react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -14,8 +15,11 @@ import { getAgenda } from '../../utils/agenda-storage'
 import { agendaStatusLabel, agendaStatusBg } from '../../utils/agenda-helpers'
 import { statusLabel, statusColor, formatDate } from '../../utils/helpers'
 import { useAuth } from '../../contexts/AuthContext'
+import { getControleCirurgias } from '../../utils/controle-storage'
+import { SEGMENTO_LABELS } from '../../types/controle'
 import type { RequisitionStatus } from '../../types'
 import type { AgendaItem } from '../../types/agenda'
+import type { ControleCirurgia } from '../../types/controle'
 
 /* ─── Apple system colors ───────────────────────────────── */
 const A = {
@@ -59,10 +63,12 @@ export default function Dashboard() {
   const [activeFilter, setActiveFilter] = useState<FilterKey | null>(null)
   const [reqs, setReqs] = useState<import('../../types').Requisition[]>([])
   const [agenda, setAgenda] = useState<AgendaItem[]>([])
+  const [controle, setControle] = useState<ControleCirurgia[]>([])
 
   useEffect(() => {
     getRequisitions().then(all => setReqs(isAdmin ? all : all.filter(r => r.solicitanteId === user?.id)))
     getAgenda().then(setAgenda)
+    if (isAdmin) getControleCirurgias().then(setControle).catch(() => {})
   }, [isAdmin, user?.id])
 
   const agendaStats = useMemo(() => {
@@ -124,6 +130,26 @@ export default function Dashboard() {
 
   const hasAgenda = agenda.length > 0
 
+  const mesAtual = new Date().getMonth() + 1
+  const anoAtual = new Date().getFullYear()
+
+  const controleStats = useMemo(() => {
+    const mes = controle.filter(c => {
+      const d = new Date(c.data)
+      return d.getMonth() + 1 === mesAtual && d.getFullYear() === anoAtual
+    })
+    return {
+      total:       mes.length,
+      ortopedia:   mes.filter(c => c.segmento === 'ortopedia').length,
+      trauma:      mes.filter(c => c.segmento === 'trauma').length,
+      neuro:       mes.filter(c => c.segmento === 'neuro').length,
+      coluna:      mes.filter(c => c.segmento === 'coluna').length,
+      canceladas:  mes.filter(c => c.acompanhamento === 'cancelada').length,
+    }
+  }, [controle, mesAtual, anoAtual])
+
+  const MESES_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
+
   return (
     <div className="space-y-5 p-0">
 
@@ -144,6 +170,13 @@ export default function Dashboard() {
           </button>
         </div>
       )}
+
+      {/* ══ SEÇÃO: AGENDAMENTO ══ */}
+      <SectionHeader
+        icon={<CalendarDays size={16} style={{ color: A.blue }} />}
+        title="Dashboard de Agendamento"
+        accent={A.blue}
+      />
 
       {/* ══ KPI STRIP ══ */}
       {hasAgenda ? (
@@ -216,6 +249,32 @@ export default function Dashboard() {
             <Upload size={14} /> Importar Agenda
           </button>
         </div>
+      )}
+
+      {/* ══ SEÇÃO: CONTROLE DE CIRURGIAS ══ */}
+      {isAdmin && controle.length > 0 && (
+        <>
+          <SectionHeader
+            icon={<ClipboardList size={16} style={{ color: '#c02020' }} />}
+            title={`Dashboard de Controle de Cirurgias — ${MESES_PT[mesAtual - 1]} ${anoAtual}`}
+            accent="#c02020"
+          />
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <StatCard icon={Layers}       label="Total"     value={controleStats.total}     color="#c02020" />
+            <StatCard icon={Activity}     label="Ortopedia" value={controleStats.ortopedia}  color="#007AFF" />
+            <StatCard icon={AlertTriangle}label="Trauma"    value={controleStats.trauma}     color="#FF9500" />
+            <StatCard icon={Stethoscope}  label="Neuro"     value={controleStats.neuro}      color="#AF52DE" />
+            <StatCard icon={Zap}          label="Coluna"    value={controleStats.coluna}     color="#34C759" />
+            <StatCard icon={XCircle}      label="Canceladas"value={controleStats.canceladas} color="#FF3B30" />
+          </div>
+          <div className="flex justify-end">
+            <button onClick={() => navigate('/controle')}
+              className="text-xs font-medium flex items-center gap-1 transition-colors"
+              style={{ color: '#c02020' }}>
+              Ver Controle completo <ArrowRight size={12} />
+            </button>
+          </div>
+        </>
       )}
 
       {/* ══ CHARTS (admin) ══ */}
@@ -496,6 +555,20 @@ function AgendaRow({ item, showDate }: { item: AgendaItem; showDate?: boolean })
             style={{ background: 'rgba(52,199,89,0.12)', color: A.green }}>✓ Autorizada</span>
         )}
       </div>
+    </div>
+  )
+}
+
+/* ══ SectionHeader ═══════════════════════════════════════════════════ */
+function SectionHeader({ icon, title, accent }: { icon: React.ReactNode; title: string; accent: string }) {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0"
+        style={{ background: `${accent}14` }}>
+        {icon}
+      </div>
+      <h2 className="font-bold text-sm tracking-tight" style={{ color: A.gray1 }}>{title}</h2>
+      <div className="flex-1 h-px" style={{ background: 'rgba(0,0,0,0.06)' }} />
     </div>
   )
 }

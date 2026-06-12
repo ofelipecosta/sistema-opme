@@ -85,8 +85,21 @@ export async function deleteControleCirurgia(id: string): Promise<void> {
 }
 
 export async function clearControleCirurgias(): Promise<void> {
-  const { error } = await supabase.from('controle_cirurgias').delete().neq('id', '')
-  if (error) throw error
+  // Busca todos os IDs e deleta em chunks para contornar restrições de RLS
+  const { data, error: fetchError } = await supabase
+    .from('controle_cirurgias')
+    .select('id')
+  if (fetchError) throw fetchError
+  if (!data?.length) return
+  const ids = data.map(r => r.id as string)
+  const CHUNK = 200
+  for (let i = 0; i < ids.length; i += CHUNK) {
+    const { error } = await supabase
+      .from('controle_cirurgias')
+      .delete()
+      .in('id', ids.slice(i, i + CHUNK))
+    if (error) throw error
+  }
 }
 
 export async function countControleCirurgias(): Promise<number> {

@@ -807,22 +807,32 @@ export default function MaterialSeparation() {
       {/* ── Header ── */}
       <div>
         <h2 className="text-xl font-bold tracking-tight" style={{ color: '#1D1D1F' }}>Separação de Materiais</h2>
-        <p className="text-sm mt-0.5" style={{ color: '#8E8E93' }}>
-          {filtered.length} requisição{filtered.length !== 1 ? 'ões' : ''} · {totalItems} {totalItems === 1 ? 'material' : 'materiais'}
-        </p>
       </div>
 
-      {/* ── KPI strip ── */}
+      {/* ── KPI strip — estilo Apple premium ── */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { label: 'Total', value: all.length, color: '#007AFF', bg: 'rgba(0,122,255,0.08)' },
-          { label: 'Pendentes', value: pendentes, color: '#FF9500', bg: 'rgba(255,149,0,0.08)' },
-          { label: 'Separados', value: separados, color: '#34C759', bg: 'rgba(52,199,89,0.08)' },
+          { label: 'Total',     value: all.length, color: '#007AFF', icon: Package },
+          { label: 'Pendentes', value: pendentes,   color: '#FF9500', icon: Clock   },
+          { label: 'Separados', value: separados,   color: '#34C759', icon: CheckCircle2 },
         ].map(k => (
-          <div key={k.label} className="rounded-2xl p-4 text-center"
-            style={{ background: k.bg, border: `1px solid ${k.color}18` }}>
-            <p className="text-2xl font-bold" style={{ color: k.color }}>{k.value}</p>
-            <p className="text-xs font-medium mt-0.5" style={{ color: k.color }}>{k.label}</p>
+          <div key={k.label}
+            className="rounded-2xl p-4 transition-all"
+            style={{
+              background: 'rgba(255,255,255,0.88)',
+              border: '1px solid rgba(0,0,0,0.06)',
+              backdropFilter: 'blur(16px)',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+            }}>
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center"
+                style={{ background: `${k.color}14` }}>
+                <k.icon size={15} style={{ color: k.color }} />
+              </div>
+            </div>
+            <p className="text-3xl font-bold leading-none mb-1.5" style={{ color: '#1D1D1F' }}>{k.value}</p>
+            <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#8E8E93' }}>{k.label}</p>
+            <div className="h-0.5 rounded-full mt-2.5 w-6" style={{ background: k.color, opacity: 0.4 }} />
           </div>
         ))}
       </div>
