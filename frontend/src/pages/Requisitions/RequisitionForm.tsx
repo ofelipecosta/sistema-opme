@@ -240,25 +240,37 @@ export default function RequisitionForm() {
           ) : (
             <div>
               <div className="divide-y divide-slate-100">
-                {fields.map((field, idx) => (
-                  <div key={field.id} className="flex items-center gap-3 px-4 py-3">
-                    <div className="flex-1 min-w-0">
-                      <input className="mobile-input uppercase text-sm"
-                        {...register(`materiais.${idx}.descricao`)}
-                        onInput={toUpper}
-                        placeholder={`Material ${idx + 1}`} />
+                {fields.map((field, idx) => {
+                  const qty = watch(`materiais.${idx}.quantidade`) || 1
+                  return (
+                    <div key={field.id} className="flex items-center gap-3 px-4 py-3">
+                      <div className="flex-1 min-w-0">
+                        <input className="mobile-input uppercase text-sm"
+                          {...register(`materiais.${idx}.descricao`)}
+                          onInput={toUpper}
+                          placeholder={`Material ${idx + 1}`} />
+                      </div>
+                      {/* +/- quantity stepper */}
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <button type="button"
+                          onClick={() => setValue(`materiais.${idx}.quantidade`, Math.max(1, Number(qty) - 1))}
+                          className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 text-slate-600 hover:bg-primary-100 hover:text-primary-700 transition-colors text-lg font-bold leading-none">
+                          −
+                        </button>
+                        <span className="w-8 text-center font-bold text-sm text-slate-800 tabular-nums">{qty}</span>
+                        <button type="button"
+                          onClick={() => setValue(`materiais.${idx}.quantidade`, Number(qty) + 1)}
+                          className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 text-slate-600 hover:bg-primary-100 hover:text-primary-700 transition-colors text-lg font-bold leading-none">
+                          +
+                        </button>
+                      </div>
+                      <button type="button" onClick={() => remove(idx)}
+                        className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
-                    <div className="w-16 flex-shrink-0">
-                      <input className="mobile-input text-center font-bold text-sm" type="number" min="1"
-                        placeholder="Qtd"
-                        {...register(`materiais.${idx}.quantidade`, { valueAsNumber: true, min: 1 })} />
-                    </div>
-                    <button type="button" onClick={() => remove(idx)}
-                      className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
               <button type="button" onClick={addMaterial}
                 className="w-full flex items-center justify-center gap-1.5 py-2.5 text-primary-600 text-xs font-semibold hover:bg-primary-50 transition-colors border-t border-slate-100">

@@ -13,6 +13,16 @@ function useNow() {
   return now
 }
 
+function useIsMobile() {
+  const [mobile, setMobile] = useState(() => window.innerWidth < 768)
+  useEffect(() => {
+    const fn = () => setMobile(window.innerWidth < 768)
+    window.addEventListener('resize', fn)
+    return () => window.removeEventListener('resize', fn)
+  }, [])
+  return mobile
+}
+
 function useDarkMode() {
   const [dark, setDark] = useState(() => localStorage.getItem('opme_tv_dark') === '1')
   function toggle() { setDark(d => { localStorage.setItem('opme_tv_dark', d ? '0' : '1'); return !d }) }
@@ -142,6 +152,7 @@ const SCROLL_SPEED = 34
 
 export default function TVDashboard({ onExit }: Props) {
   const now     = useNow()
+  const isMobile = useIsMobile()
   const [dark, toggleDark] = useDarkMode()
   const T = dark ? DARK : LIGHT
 
@@ -236,261 +247,251 @@ export default function TVDashboard({ onExit }: Props) {
         flexShrink: 0,
         display: 'flex',
         alignItems: 'center',
-        padding: '0 28px',
-        height: 80,
+        padding: isMobile ? '0 16px' : '0 28px',
+        height: isMobile ? 60 : 80,
         gap: 0,
       }}>
-
         {/* Brand */}
-        <div style={{ display:'flex', alignItems:'center', gap:12, flexShrink:0, paddingRight:28 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
           <div style={{
-            width:40, height:40, borderRadius:12, flexShrink:0,
+            width: isMobile ? 32 : 40, height: isMobile ? 32 : 40, borderRadius:12, flexShrink:0,
             background: 'linear-gradient(135deg,#007AFF 0%,#5AC8FA 100%)',
             display:'flex', alignItems:'center', justifyContent:'center',
-            boxShadow:'0 4px 12px rgba(0,122,255,0.35)',
           }}>
-            <Activity size={18} color="#fff" strokeWidth={2.2} />
+            <Activity size={isMobile ? 14 : 18} color="#fff" strokeWidth={2.2} />
           </div>
           <div>
-            <p style={{ fontSize:13, fontWeight:700, letterSpacing:'0.02em', color: T.text1, lineHeight:1 }}>NOS · OPME</p>
-            <p style={{ fontSize:10, color: T.text3, marginTop:3, letterSpacing:'0.04em', fontWeight:500 }}>Agenda Cirúrgica</p>
+            <p style={{ fontSize: isMobile ? 11 : 13, fontWeight:700, color: T.text1, lineHeight:1 }}>NOS · OPME</p>
+            <p style={{ fontSize: isMobile ? 9 : 10, color: T.text3, marginTop:2, fontWeight:500 }}>Agenda Cirúrgica</p>
           </div>
         </div>
 
-        <HDivider T={T} />
-
-        {/* Date + Clock */}
-        <div style={{ paddingLeft:24, paddingRight:24, flexShrink:0 }}>
+        {/* Clock — mobile: compact, desktop: large */}
+        {isMobile ? (
           <p style={{
-            fontFamily: "monospace, 'SF Mono'",
-            fontSize: 40, fontWeight: 600, color: T.text1,
-            letterSpacing: '-0.02em', lineHeight: 1,
+            marginLeft: 'auto', marginRight: 12,
+            fontFamily:'monospace', fontSize:20, fontWeight:600,
+            color: T.text1, letterSpacing:'-0.02em',
           }}>
-            {now.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit', second:'2-digit' })}
+            {now.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })}
           </p>
-          <p style={{ fontSize:11, color: T.text3, marginTop:4, textTransform:'capitalize', fontWeight:500 }}>
-            {fmtFullDate(now)}
-          </p>
-        </div>
+        ) : (
+          <>
+            <HDivider T={T} />
+            <div style={{ paddingLeft:24, paddingRight:24, flexShrink:0 }}>
+              <p style={{ fontFamily:"monospace,'SF Mono'", fontSize:40, fontWeight:600, color:T.text1, letterSpacing:'-0.02em', lineHeight:1 }}>
+                {now.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit', second:'2-digit' })}
+              </p>
+              <p style={{ fontSize:11, color:T.text3, marginTop:4, textTransform:'capitalize', fontWeight:500 }}>
+                {fmtFullDate(now)}
+              </p>
+            </div>
+            <HDivider T={T} />
+            <div style={{ display:'flex', alignItems:'center', gap:12, padding:'0 24px', flexShrink:0 }}>
+              <KpiCard label="Hoje" value={todayItems.length} color="#34C759" T={T} glow />
+              <KpiCard label="Total" value={filtered.length}  color="#007AFF" T={T} />
+              <KpiCard label="Autorizadas" value={autorizadas} color="#00C7BE" T={T} />
+              {emergencias > 0 && <KpiCard label="Emergência" value={emergencias} color="#FF3B30" T={T} />}
+            </div>
+          </>
+        )}
 
-        <HDivider T={T} />
-
-        {/* KPI cards */}
-        <div style={{ display:'flex', alignItems:'center', gap:12, padding:'0 24px', flexShrink:0 }}>
-          <KpiCard label="Hoje" value={todayItems.length} color="#34C759" T={T} glow />
-          <KpiCard label="Total" value={filtered.length}  color="#007AFF" T={T} />
-          <KpiCard label="Autorizadas" value={autorizadas} color="#00C7BE" T={T} />
-          {emergencias > 0 && <KpiCard label="Emergência" value={emergencias} color="#FF3B30" T={T} />}
-        </div>
-
-        <div style={{ flex:1 }} />
-
-        {/* Refresh indicator */}
-        <div style={{ display:'flex', alignItems:'center', gap:6, paddingRight:20, flexShrink:0 }}>
-          <div style={{ position:'relative', width:28, height:28, flexShrink:0 }}>
-            <svg viewBox="0 0 28 28" style={{ transform:'rotate(-90deg)', width:28, height:28 }}>
-              <circle cx="14" cy="14" r="11" fill="none" stroke={T.divider} strokeWidth="2.5" />
-              <circle cx="14" cy="14" r="11" fill="none"
-                stroke={countdown <= 10 ? '#34C759' : '#007AFF'} strokeWidth="2.5"
-                strokeDasharray={`${2*Math.PI*11}`}
-                strokeDashoffset={`${2*Math.PI*11 * (countdown / 60)}`}
-                strokeLinecap="round"
-                style={{ transition:'stroke-dashoffset 1s linear, stroke 0.5s' }}
-              />
-            </svg>
-            <span style={{
-              position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center',
-              fontSize:8, fontWeight:700, color: countdown <= 10 ? '#34C759' : T.text3, fontFamily:'monospace',
-            }}>{countdown}</span>
-          </div>
-          <span style={{ fontSize:10, color: T.text4, fontWeight:500, letterSpacing:'0.03em' }}>AUTO</span>
-        </div>
+        <div style={{ flex: isMobile ? 0 : 1 }} />
 
         {/* Controls */}
-        <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
-          {!compact && (
-          <HBtn onClick={() => setAutoScroll(v => !v)} T={T}>
-            {autoScroll ? <Pause size={12} /> : <Play size={12} color="#34C759" />}
-            <span style={{ color: autoScroll ? T.btnText : '#34C759' }}>{autoScroll ? 'Pausar' : 'Rolar'}</span>
-          </HBtn>
-        )}
-          <HBtn onClick={() => setShowSettings(true)} T={T}>
-            <SlidersHorizontal size={12} /> <span>Filtros</span>
-          </HBtn>
+        <div style={{ display:'flex', alignItems:'center', gap: isMobile ? 4 : 6, flexShrink:0 }}>
+          {!isMobile && !compact && (
+            <HBtn onClick={() => setAutoScroll(v => !v)} T={T}>
+              {autoScroll ? <Pause size={12} /> : <Play size={12} color="#34C759" />}
+              <span style={{ color: autoScroll ? T.btnText : '#34C759' }}>{autoScroll ? 'Pausar' : 'Rolar'}</span>
+            </HBtn>
+          )}
+          {!isMobile && (
+            <HBtn onClick={() => setShowSettings(true)} T={T}>
+              <SlidersHorizontal size={12} /> <span>Filtros</span>
+            </HBtn>
+          )}
           <HBtn onClick={toggleDark} T={T}>
             {dark ? <Sun size={12} /> : <Moon size={12} />}
           </HBtn>
-          <HBtn onClick={load} T={T}>
-            <RefreshCw size={11} />
-          </HBtn>
-          <HBtn onClick={onExit} T={T}>
-            <Minimize2 size={12} /> <span>Sair</span>
-          </HBtn>
+          <HBtn onClick={load} T={T}><RefreshCw size={11} /></HBtn>
+          <HBtn onClick={onExit} T={T}><Minimize2 size={12} />{!isMobile && <span>Sair</span>}</HBtn>
         </div>
       </header>
 
-      {/* ══════════════ COLUMN HEADERS ══════════════ */}
-      <div style={{
-        background: T.colBg,
-        backdropFilter: 'blur(12px)',
-        borderBottom: `1px solid ${T.divider}`,
-        flexShrink: 0,
-        padding: '0 28px',
-        height: 36,
-      }}>
-        <div style={{ display:'grid', gridTemplateColumns:COLS, height:'100%', alignItems:'center', gap:0 }}>
-          {COL_HEADS.map(h => (
-            <span key={h} style={{
-              fontSize:10, fontWeight:600, textTransform:'uppercase',
-              letterSpacing:'0.1em', color: T.text4,
-              paddingRight: 12,
-            }}>{h}</span>
+      {/* KPI strip — mobile only */}
+      {isMobile && (
+        <div style={{
+          display:'flex', gap:8, padding:'8px 16px',
+          background: T.colBg, borderBottom:`1px solid ${T.divider}`,
+          flexShrink:0, overflowX:'auto',
+        }}>
+          {[
+            { label:'Hoje', value:todayItems.length, color:'#34C759' },
+            { label:'Total', value:filtered.length, color:'#007AFF' },
+            { label:'Aut.', value:autorizadas, color:'#00C7BE' },
+            ...(emergencias > 0 ? [{ label:'Emerg.', value:emergencias, color:'#FF3B30' }] : []),
+          ].map(k => (
+            <div key={k.label} style={{
+              display:'flex', flexDirection:'column', alignItems:'center',
+              background: T.kpiCard, border:`1px solid ${T.cardBorder}`,
+              borderRadius:10, padding:'6px 14px', flexShrink:0,
+            }}>
+              <span style={{ fontSize:22, fontWeight:700, color:k.color, lineHeight:1 }}>{k.value}</span>
+              <span style={{ fontSize:9, color:T.text3, marginTop:2, fontWeight:600, textTransform:'uppercase' }}>{k.label}</span>
+            </div>
           ))}
+          <div style={{ marginLeft:'auto', fontSize:9, color:T.text4, alignSelf:'center', whiteSpace:'nowrap' }}>
+            {now.toLocaleDateString('pt-BR', { weekday:'short', day:'2-digit', month:'short' })}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Column headers — desktop only */}
+      {!isMobile && (
+        <div style={{
+          background: T.colBg, backdropFilter:'blur(12px)',
+          borderBottom:`1px solid ${T.divider}`, flexShrink:0,
+          padding:'0 28px', height:36,
+        }}>
+          <div style={{ display:'grid', gridTemplateColumns:COLS, height:'100%', alignItems:'center' }}>
+            {COL_HEADS.map(h => (
+              <span key={h} style={{ fontSize:10, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.1em', color:T.text4, paddingRight:12 }}>{h}</span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ══════════════ CONTENT ══════════════ */}
       <div ref={scrollRef} style={{
-        flex: 1,
-        overflow: compact ? 'hidden' : 'hidden',
-        padding: compact ? '8px 16px 0' : '16px 20px 0',
-        // In compact mode the inner div uses auto height; parent clips overflow
-        display: 'flex', flexDirection: 'column',
+        flex:1, overflow:'hidden',
+        padding: isMobile ? '12px 12px 0' : compact ? '8px 16px 0' : '16px 20px 0',
+        display:'flex', flexDirection:'column',
       }}>
         {filtered.length === 0 ? (
-          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-            flex:1, gap:16 }}>
+          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', flex:1, gap:16 }}>
             <Activity size={64} color={T.text4} strokeWidth={1} />
-            <p style={{ fontSize:20, fontWeight:300, color: T.text3, letterSpacing:'0.02em' }}>
+            <p style={{ fontSize:20, fontWeight:300, color:T.text3 }}>
               {allItems.length > 0 ? 'Nenhuma cirurgia no período' : 'Nenhuma agenda importada'}
             </p>
           </div>
         ) : (
-          <div style={{
-            display:'flex', flexDirection:'column',
-            gap: compact ? 10 : 20,
-            paddingBottom: compact ? 8 : 64,
-            flex: 1,
-            overflow: compact ? 'hidden' : undefined,
-          }}>
+          <div style={{ display:'flex', flexDirection:'column', gap: isMobile ? 12 : compact ? 10 : 20, paddingBottom: isMobile ? 24 : compact ? 8 : 64, flex:1, overflow: compact && !isMobile ? 'hidden' : undefined }}>
             {groups.map(({ date, items: gi }) => {
               const today = isToday(date)
               const tmrow = isTomorrow(date)
               return (
                 <div key={date}>
-
-                  {/* ── Date section label ── */}
-                  <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom: compact ? 4 : 8, paddingLeft:4 }}>
+                  {/* Date label */}
+                  <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom: isMobile ? 6 : compact ? 4 : 8, paddingLeft:4 }}>
                     <span style={{
                       display:'inline-flex', alignItems:'center', gap:6,
                       background: today ? 'rgba(0,122,255,0.1)' : dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)',
-                      border: `1px solid ${today ? 'rgba(0,122,255,0.2)' : T.divider}`,
+                      border:`1px solid ${today ? 'rgba(0,122,255,0.2)' : T.divider}`,
                       color: today ? '#007AFF' : T.text2,
-                      fontSize: compact ? 10 : 12, fontWeight:700, letterSpacing:'0.04em',
-                      padding: compact ? '2px 10px' : '4px 14px', borderRadius:100,
+                      fontSize: isMobile ? 11 : compact ? 10 : 12, fontWeight:700, letterSpacing:'0.04em',
+                      padding: isMobile ? '3px 12px' : compact ? '2px 10px' : '4px 14px', borderRadius:100,
                     }}>
                       {today && <span style={{ width:6, height:6, borderRadius:'50%', background:'#34C759', boxShadow:'0 0 8px #34C75990', flexShrink:0 }} />}
                       {today ? 'HOJE' : tmrow ? 'AMANHÃ' : fmtDateLabel(date).toUpperCase()}
                     </span>
-                    <span style={{ fontSize:11, color: T.text4, fontWeight:500 }}>
-                      {gi.length} cirurgia{gi.length !== 1 ? 's' : ''}
-                    </span>
-                    <div style={{ flex:1, height:1, background: T.divider }} />
+                    <span style={{ fontSize:11, color:T.text4, fontWeight:500 }}>{gi.length} cirurgia{gi.length !== 1 ? 's' : ''}</span>
+                    <div style={{ flex:1, height:1, background:T.divider }} />
                   </div>
 
-                  {/* ── Surgery cards ── */}
-                  <div style={{ display:'flex', flexDirection:'column', gap: compact ? 3 : 6 }}>
+                  {/* Cards */}
+                  <div style={{ display:'flex', flexDirection:'column', gap: isMobile ? 8 : compact ? 3 : 6 }}>
                     {gi.map((item, idx) => {
                       const sc    = item.emergencia ? '#FF3B30' : sColor(item.status)
                       const isEmg = !!item.emergencia
+
+                      /* ── Mobile card ── */
+                      if (isMobile) {
+                        return (
+                          <div key={item.id || idx} style={{
+                            background: isEmg ? T.emergBg : (today ? T.todayBg : T.cardBg),
+                            border: `1px solid ${isEmg ? T.emergBorder : T.cardBorder}`,
+                            borderLeft: `4px solid ${sc}`,
+                            borderRadius:14, padding:'12px 14px',
+                            boxShadow: T.shadow,
+                          }}>
+                            {/* Row 1: hora + paciente + status */}
+                            <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:8, marginBottom:6 }}>
+                              <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                                <span style={{ fontFamily:'monospace', fontSize:20, fontWeight:700, color: isEmg ? '#FF3B30' : T.timeColor, lineHeight:1, flexShrink:0 }}>
+                                  {item.horaCirurgia || '--:--'}
+                                </span>
+                                <div>
+                                  <p style={{ fontSize:14, fontWeight:600, color:T.text1, lineHeight:1.2 }}>{item.paciente || '—'}</p>
+                                  {item.procedimento && <p style={{ fontSize:10, color:T.text3, marginTop:2 }}>{item.procedimento}</p>}
+                                </div>
+                              </div>
+                              <span style={{
+                                display:'inline-flex', alignItems:'center', gap:4,
+                                background:`${sc}18`, border:`1px solid ${sc}30`,
+                                color:sc, fontSize:10, fontWeight:600,
+                                padding:'3px 8px', borderRadius:100, whiteSpace:'nowrap', flexShrink:0,
+                              }}>
+                                <span style={{ width:5, height:5, borderRadius:'50%', background:sc }} />
+                                {sLabel(item.status)}
+                              </span>
+                            </div>
+                            {/* Row 2: hospital + médico */}
+                            <div style={{ display:'flex', flexWrap:'wrap', gap:'4px 16px', fontSize:11, color:T.text2 }}>
+                              {item.hospital && <span>🏥 {item.hospital}</span>}
+                              {item.medico   && <span>👨‍⚕️ {item.medico}</span>}
+                              {item.convenio && <span style={{ color:T.text3 }}>{item.convenio}</span>}
+                              {item.vendedor && <span style={{ color:T.text3 }}>👤 {item.vendedor}</span>}
+                              {item.autorizada && <span style={{ color:'#34C759', fontWeight:700 }}>✓ Autorizada</span>}
+                              {isEmg && <span style={{ color:'#FF3B30', fontWeight:700 }}>⚡ EMERGÊNCIA</span>}
+                            </div>
+                          </div>
+                        )
+                      }
+
+                      /* ── Desktop row ── */
                       const rowPad = compact ? '7px 14px' : '14px 16px'
                       const timeSize = compact ? 16 : 22
                       const cellSize = compact ? 11 : 13
                       const subSize  = compact ? 9  : 10
                       return (
-                        <div key={item.id || idx}
-                          style={{
-                            display:'grid', gridTemplateColumns:COLS, alignItems:'center',
-                            background: isEmg ? T.emergBg : (today ? T.todayBg : T.cardBg),
-                            border: `1px solid ${isEmg ? T.emergBorder : T.cardBorder}`,
-                            borderRadius: compact ? 10 : 16,
-                            padding: rowPad,
-                            backdropFilter: 'blur(20px) saturate(1.6)',
-                            WebkitBackdropFilter: 'blur(20px) saturate(1.6)',
-                            boxShadow: T.shadow,
-                            transition: 'background 0.2s',
-                            borderLeft: `3px solid ${sc}`,
-                          }}>
-
-                          {/* Hora */}
+                        <div key={item.id || idx} style={{
+                          display:'grid', gridTemplateColumns:COLS, alignItems:'center',
+                          background: isEmg ? T.emergBg : (today ? T.todayBg : T.cardBg),
+                          border:`1px solid ${isEmg ? T.emergBorder : T.cardBorder}`,
+                          borderRadius: compact ? 10 : 16, padding:rowPad,
+                          backdropFilter:'blur(20px) saturate(1.6)', WebkitBackdropFilter:'blur(20px) saturate(1.6)',
+                          boxShadow:T.shadow, borderLeft:`3px solid ${sc}`,
+                        }}>
                           <div style={{ paddingRight:10 }}>
-                            <span style={{
-                              fontFamily:"'SF Mono','Fira Code',monospace",
-                              fontSize: timeSize, fontWeight: 600,
-                              color: isEmg ? '#FF3B30' : T.timeColor,
-                              letterSpacing:'-0.01em', lineHeight:1,
-                            }}>
+                            <span style={{ fontFamily:"'SF Mono','Fira Code',monospace", fontSize:timeSize, fontWeight:600, color: isEmg ? '#FF3B30' : T.timeColor, lineHeight:1 }}>
                               {item.horaCirurgia || '—:——'}
                             </span>
-                            {isEmg && (
-                              <span style={{
-                                display:'block', fontSize:8, fontWeight:700, color:'#FF3B30',
-                                letterSpacing:'0.08em', marginTop:2, textTransform:'uppercase',
-                              }}>⚠ EMERG.</span>
-                            )}
+                            {isEmg && <span style={{ display:'block', fontSize:8, fontWeight:700, color:'#FF3B30', marginTop:2, textTransform:'uppercase' }}>⚠ EMERG.</span>}
                           </div>
-
-                          {/* Hospital */}
                           <GCell text={item.hospital} size={cellSize} weight={600} color={T.text1} />
-
-                          {/* Paciente + Procedimento */}
                           <div style={{ paddingRight:12, minWidth:0 }}>
-                            <p style={{ fontSize:cellSize, fontWeight:500, color:T.text1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                              {item.paciente || '—'}
-                            </p>
-                            {item.procedimento && (
-                              <p style={{ fontSize:subSize, color:T.text3, marginTop:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                                {item.procedimento}
-                              </p>
-                            )}
+                            <p style={{ fontSize:cellSize, fontWeight:500, color:T.text1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{item.paciente || '—'}</p>
+                            {item.procedimento && <p style={{ fontSize:subSize, color:T.text3, marginTop:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{item.procedimento}</p>}
                           </div>
-
-                          {/* Médico */}
                           <GCell text={item.medico}           size={compact ? 10 : 11} color={T.text2} />
-
-                          {/* Convênio */}
                           <GCell text={item.convenio}         size={compact ? 10 : 11} color={T.text2} wrap />
-
-                          {/* Vendedor */}
                           <GCell text={item.vendedor}         size={compact ? 10 : 11} color={T.text3} />
-
-                          {/* Instrumentador */}
-                          <GCell text={item.instrumentadores} size={compact ? 9 : 10} color={T.text3} wrap />
-
-                          {/* Autorizada */}
+                          <GCell text={item.instrumentadores} size={compact ? 9  : 10} color={T.text3} wrap />
                           <div style={{ display:'flex', alignItems:'center', justifyContent:'center' }}>
-                            {item.autorizada
-                              ? <span style={{ fontSize: compact ? 13 : 16, color:'#34C759', fontWeight:700, lineHeight:1 }}>✓</span>
-                              : <span style={{ fontSize:12, color: T.text4, lineHeight:1 }}>—</span>}
+                            {item.autorizada ? <span style={{ fontSize: compact ? 13 : 16, color:'#34C759', fontWeight:700 }}>✓</span> : <span style={{ fontSize:12, color:T.text4 }}>—</span>}
                           </div>
-
-                          {/* Status */}
                           <div>
                             <span style={{
                               display:'inline-flex', alignItems:'center', gap: compact ? 4 : 6,
-                              background: `${sc}18`,
-                              border: `1px solid ${sc}30`,
-                              color: sc,
+                              background:`${sc}18`, border:`1px solid ${sc}30`, color:sc,
                               fontSize: compact ? 10 : 11, fontWeight:600,
-                              padding: compact ? '3px 8px' : '5px 11px', borderRadius:100,
-                              letterSpacing:'0.02em',
-                              whiteSpace:'nowrap',
+                              padding: compact ? '3px 8px' : '5px 11px', borderRadius:100, whiteSpace:'nowrap',
                             }}>
                               <span style={{ width:5, height:5, borderRadius:'50%', background:sc, flexShrink:0 }} />
                               {sLabel(item.status)}
                             </span>
                           </div>
-
                         </div>
                       )
                     })}

@@ -104,41 +104,39 @@ export default function RequisitionDetail() {
             )}
             <span className={`badge ${statusColor(req.status)}`}>{statusLabel(req.status)}</span>
           </div>
-          <h1 className="text-xl font-bold text-gray-800 mt-1 truncate">
+          <h1 className="text-xl font-bold text-gray-800 mt-1">
             {req.pacienteNome || 'Paciente não informado'}
           </h1>
           <p className="text-sm text-gray-500">{req.hospitalNome} — {req.medicoNome}</p>
-        </div>
-        <div className="flex gap-2 flex-shrink-0 flex-wrap">
-          {canEditReq && (
-            <button onClick={() => navigate(`/requisicoes/${req.id}/editar`)} className="btn-secondary btn-sm">
-              <Edit2 className="w-4 h-4" /> Editar
+
+          {/* Action buttons — below title on mobile, inline on desktop */}
+          <div className="flex gap-2 flex-wrap mt-3">
+            {canEditReq && (
+              <button onClick={() => navigate(`/requisicoes/${req.id}/editar`)} className="btn-secondary btn-sm">
+                <Edit2 className="w-4 h-4" /> Editar
+              </button>
+            )}
+            <button
+              onClick={() => shareWhatsApp(req)}
+              className="btn-sm bg-green-600 text-white hover:bg-green-700 rounded-lg flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium"
+              title="Enviar via WhatsApp"
+            >
+              <MessageCircle className="w-4 h-4" />
+              <span className="hidden sm:inline">WhatsApp</span>
             </button>
-          )}
-          <button
-            onClick={() => shareWhatsApp(req)}
-            className="btn-sm bg-green-600 text-white hover:bg-green-700 rounded-lg flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium"
-            title="Enviar via WhatsApp"
-          >
-            <MessageCircle className="w-4 h-4" />
-            <span className="hidden sm:inline">WhatsApp</span>
-          </button>
-          <button
-            onClick={() => shareEmail(req)}
-            className="btn-secondary btn-sm"
-            title="Enviar por E-mail"
-          >
-            <Mail className="w-4 h-4" />
-            <span className="hidden sm:inline">E-mail</span>
-          </button>
-          <button onClick={() => window.print()} className="btn-secondary btn-sm no-print">
-            <Download className="w-4 h-4" />
-          </button>
-          {canDelete && (
-            <button onClick={deleteReq} className="btn-danger btn-sm" title="Excluir requisição">
-              <Trash2 className="w-4 h-4" />
+            <button onClick={() => shareEmail(req)} className="btn-secondary btn-sm" title="Enviar por E-mail">
+              <Mail className="w-4 h-4" />
+              <span className="hidden sm:inline">E-mail</span>
             </button>
-          )}
+            <button onClick={() => window.print()} className="btn-secondary btn-sm no-print">
+              <Download className="w-4 h-4" />
+            </button>
+            {canDelete && (
+              <button onClick={deleteReq} className="btn-danger btn-sm" title="Excluir requisição">
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -205,11 +203,9 @@ export default function RequisitionDetail() {
 
       {/* Vendedor */}
       <InfoCard icon={<User className="w-4 h-4" />} title="Vendedor Responsável">
-        <div className="grid grid-cols-3 gap-2">
-          <Row label="Nome" value={req.vendedorNome} />
-          <Row label="Telefone" value={req.vendedorTelefone} />
-          <Row label="E-mail" value={req.vendedorEmail} />
-        </div>
+        <Row label="Nome" value={req.vendedorNome} />
+        <Row label="Telefone" value={req.vendedorTelefone} />
+        <Row label="E-mail" value={req.vendedorEmail} />
       </InfoCard>
 
       {/* Materials */}
