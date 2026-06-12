@@ -205,7 +205,16 @@ export function parseStatus(raw: string): AgendaStatus {
 
 export function parseDate(val: unknown): string {
   if (!val) return ''
+  if (typeof val === 'number') {
+    const d = new Date((val - 25569) * 86400 * 1000)
+    return d.toISOString().split('T')[0]
+  }
   if (typeof val === 'string') {
+    // Serial numérico do Excel vindo como string (ex: "46023")
+    if (/^\d{4,6}$/.test(val.trim())) {
+      const d = new Date((Number(val) - 25569) * 86400 * 1000)
+      if (!isNaN(d.getTime())) return d.toISOString().split('T')[0]
+    }
     const m = val.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/)
     if (m) {
       const y = m[3].length === 2 ? `20${m[3]}` : m[3]
@@ -213,10 +222,6 @@ export function parseDate(val: unknown): string {
     }
     const iso = new Date(val)
     if (!isNaN(iso.getTime())) return iso.toISOString().split('T')[0]
-  }
-  if (typeof val === 'number') {
-    const d = new Date((val - 25569) * 86400 * 1000)
-    return d.toISOString().split('T')[0]
   }
   return String(val)
 }
