@@ -357,8 +357,12 @@ function ControleImport() {
       const wb = XLSX.read(await file.arrayBuffer(), { type: 'array', cellDates: false })
 
       // Tenta ler a aba do mês atual ou a primeira aba disponível
-      const sheetName = wb.SheetNames.find(n => !['DADOS','dados'].includes(n)) ?? wb.SheetNames[0]
-      const rows: Record<string, unknown>[] = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { defval: '', raw: true })
+      // Lê todas as abas (ignora abas de configuração) e combina as linhas
+      const ignorar = ['dados', 'config', 'configuracao', 'resumo', 'total']
+      const abas = wb.SheetNames.filter(n => !ignorar.includes(n.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')))
+      const rows: Record<string, unknown>[] = abas.flatMap(aba =>
+        XLSX.utils.sheet_to_json(wb.Sheets[aba], { defval: '', raw: true }) as Record<string, unknown>[]
+      )
       if (!rows.length) { toast.error('Planilha vazia'); return }
 
       const hdrs = Object.keys(rows[0])
