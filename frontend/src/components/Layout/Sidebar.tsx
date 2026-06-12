@@ -10,7 +10,6 @@ interface Props {
 
 const navItems = [
   { to: '/',              label: 'Dashboard',      icon: LayoutDashboard, end: true },
-  { to: '/tv',            label: 'Painel TV',       icon: Tv },
   { to: '/requisicoes',   label: 'Agendamento',        icon: CalendarDays },
   { to: '/separacao',    label: 'Separação de Materiais', icon: Package },
   { to: '/usuarios',      label: 'Usuários',        icon: Users,    adminOnly: true },
@@ -91,6 +90,22 @@ export default function Sidebar({ open, onClose }: Props) {
             </NavLink>
           )
         })}
+
+        {/* Painel TV — abre em nova aba */}
+        {isAdmin && (
+          <a
+            href="/tv"
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={onClose}
+            className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 hover:bg-black/[0.04]"
+            style={{ color: '#48484A' }}
+          >
+            <Tv className="w-4 h-4 flex-shrink-0" style={{ color: '#8E8E93' }} />
+            Painel TV
+            <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-md" style={{ background: 'rgba(0,0,0,0.05)', color: '#8E8E93' }}>↗</span>
+          </a>
+        )}
       </nav>
 
       {/* User info */}

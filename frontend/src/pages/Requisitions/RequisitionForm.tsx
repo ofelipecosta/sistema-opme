@@ -400,24 +400,48 @@ function SummaryModal({ data, convenioOutros, isEmergency, channel, onConfirm, o
           )}
         </div>
 
-        {/* Channel info */}
-        <div className="px-5 pb-2">
-          <p className="text-xs text-slate-400 text-center">
-            Será enviado via <strong className="text-slate-600">{channel}</strong>
-          </p>
+        {/* Suggested send action */}
+        <div className={`mx-5 mb-3 rounded-2xl px-4 py-3 flex items-center gap-3 ${
+          isEmergency
+            ? 'bg-green-50 border border-green-200'
+            : 'bg-blue-50 border border-blue-200'
+        }`}>
+          <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
+            isEmergency ? 'bg-green-500' : 'bg-blue-500'
+          }`}>
+            {isEmergency
+              ? <MessageCircle className="w-5 h-5 text-white" />
+              : <Mail className="w-5 h-5 text-white" />}
+          </div>
+          <div className="min-w-0">
+            <p className={`text-sm font-bold ${isEmergency ? 'text-green-800' : 'text-blue-800'}`}>
+              {isEmergency ? 'Enviar por WhatsApp' : 'Enviar por E-mail'}
+            </p>
+            <p className={`text-xs ${isEmergency ? 'text-green-600' : 'text-blue-600'}`}>
+              {isEmergency
+                ? 'Emergência — WhatsApp é mais rápido'
+                : 'Eletiva — envio formal por e-mail'}
+            </p>
+          </div>
         </div>
 
         {/* Actions */}
-        <div className="px-5 pb-5 flex gap-3 pt-2">
-          <button onClick={onCancel}
-            className="flex-1 py-3 rounded-2xl bg-slate-100 text-slate-600 text-sm font-semibold hover:bg-slate-200 transition-colors">
-            Voltar
-          </button>
+        <div className="px-5 pb-5 flex flex-col gap-2">
+          {/* Primary: save + send */}
           <button onClick={onConfirm} disabled={saving}
-            className={`flex-1 py-3 rounded-2xl text-white text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50 transition-all ${
-              isEmergency ? 'bg-red-500 hover:bg-red-600' : 'bg-primary-600 hover:bg-primary-700'
+            className={`w-full py-3.5 rounded-2xl text-white text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50 transition-all active:scale-[0.98] ${
+              isEmergency ? 'bg-green-500 hover:bg-green-600' : 'bg-blue-500 hover:bg-blue-600'
             }`}>
-            {saving ? 'Enviando…' : <><Send className="w-4 h-4" /> Confirmar</>}
+            {saving
+              ? 'Salvando…'
+              : isEmergency
+                ? <><MessageCircle className="w-4 h-4" /> Salvar e Enviar por WhatsApp</>
+                : <><Mail className="w-4 h-4" /> Salvar e Enviar por E-mail</>}
+          </button>
+          {/* Secondary: back */}
+          <button onClick={onCancel}
+            className="w-full py-3 rounded-2xl bg-slate-100 text-slate-500 text-sm font-medium transition-colors hover:bg-slate-200">
+            Voltar e Revisar
           </button>
         </div>
       </div>
