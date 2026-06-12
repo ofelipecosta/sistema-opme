@@ -18,7 +18,10 @@
       "Bash(git commit *)",
       "Bash(git rm *)",
       "Bash(git add *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Read(//c/Users/Felipe Costa/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/4afeb4f7-979c-4a1c-b7e6-d29956a647c3/2d9b5bf0-1ede-40f0-a914-5b250ede0c51/skills/xlsx/**)",
+      "Bash(python -c ' *)",
+      "Bash(npx vercel *)"
     ]
   }
 }

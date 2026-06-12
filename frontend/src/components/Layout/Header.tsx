@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
-import { Menu, Bell, FileText, AlertTriangle, CheckCircle2, Trash2 } from 'lucide-react'
+import { Menu, Bell, FileText, AlertTriangle, CheckCircle2, Trash2, Moon, Sun } from 'lucide-react'
+import { useTheme } from '../../contexts/ThemeContext'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { getRequisitions } from '../../utils/storage'
@@ -28,6 +29,11 @@ export default function Header({ onMenuClick }: Props) {
   const location  = useLocation()
   const navigate  = useNavigate()
   const { canEdit, isAdmin, user } = useAuth()
+  const { isDark, toggle: toggleTheme } = useTheme()
+  const hBg    = isDark ? 'rgba(26,34,53,0.95)' : 'rgba(255,255,255,0.88)'
+  const hBorder= isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)'
+  const hText  = isDark ? '#F3F4F6' : '#1D1D1F'
+  const hText3 = isDark ? '#9CA3AF' : '#8E8E93'
   const [showNotif, setShowNotif] = useState(false)
   const notifRef = useRef<HTMLDivElement>(null)
 
@@ -67,23 +73,28 @@ export default function Header({ onMenuClick }: Props) {
 
   return (
     <header className="px-4 h-14 flex items-center gap-3 sticky top-0 z-10"
-      style={{ background: 'rgba(255,255,255,0.88)', backdropFilter: 'blur(20px) saturate(1.8)', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-      <button onClick={onMenuClick}
-        className="lg:hidden p-1.5 rounded-lg transition-colors"
-        style={{ color: '#8E8E93' }}>
+      style={{ background: hBg, backdropFilter: 'blur(20px) saturate(1.8)', borderBottom: `1px solid ${hBorder}` }}>
+      <button onClick={onMenuClick} className="lg:hidden p-1.5 rounded-lg transition-colors" style={{ color: hText3 }}>
         <Menu className="w-5 h-5" />
       </button>
 
-      <h1 className="text-sm font-semibold flex-1 truncate" style={{ color: '#1D1D1F', letterSpacing: '-0.01em' }}>{title}</h1>
+      <h1 className="text-sm font-semibold flex-1 truncate" style={{ color: hText, letterSpacing: '-0.01em' }}>{title}</h1>
 
       <div className="flex items-center gap-2">
+        {/* Dark mode toggle */}
+        <button onClick={toggleTheme}
+          className="p-2 rounded-xl transition-colors"
+          style={{ color: hText3, background: isDark ? 'rgba(255,255,255,0.08)' : 'transparent' }}
+          title={isDark ? 'Modo claro' : 'Modo escuro'}>
+          {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+        </button>
 
         {/* Notification bell */}
         <div ref={notifRef} className="relative">
           <button
             onClick={() => setShowNotif(v => !v)}
             className="relative p-2 rounded-xl transition-colors hover:bg-black/[0.05]"
-            style={{ color: '#8E8E93' }}
+            style={{ color: hText3 }}
           >
             <Bell className="w-4 h-4" />
             {pendingCount > 0 && (
@@ -96,7 +107,7 @@ export default function Header({ onMenuClick }: Props) {
 
           {showNotif && (
             <div className="absolute right-0 top-10 w-80 rounded-2xl z-50 overflow-hidden"
-              style={{ background: 'rgba(255,255,255,0.96)', backdropFilter: 'blur(30px) saturate(1.8)', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 12px 40px rgba(0,0,0,0.14)' }}>
+              style={{ background: isDark ? 'rgba(31,41,55,0.98)' : 'rgba(255,255,255,0.96)', backdropFilter: 'blur(30px) saturate(1.8)', border: `1px solid ${hBorder}`, boxShadow: '0 12px 40px rgba(0,0,0,0.20)' }}>
               {/* Header */}
               <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
                 <p className="text-sm font-semibold" style={{ color: '#1D1D1F' }}>Agendamentos</p>
