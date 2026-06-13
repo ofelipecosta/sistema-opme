@@ -471,6 +471,14 @@ function DeleteConfirmModal({ req, onConfirm, onClose }: {
           <p className="text-sm mt-3" style={{ color: T.text2 }}>
             Esta ação é irreversível. A requisição e todo o histórico de separação serão removidos permanentemente.
           </p>
+          {req.anexos && req.anexos.length > 0 && (
+            <div className="flex items-center gap-2 mt-3 px-3 py-2 rounded-xl" style={{ background: 'rgba(255,59,48,0.08)' }}>
+              <Paperclip size={13} style={{ color: '#FF3B30', flexShrink: 0 }} />
+              <p className="text-sm" style={{ color: '#FF3B30' }}>
+                {req.anexos.length} {req.anexos.length === 1 ? 'anexo também será excluído' : 'anexos também serão excluídos'} do Storage.
+              </p>
+            </div>
+          )}
         </div>
         <div className="px-5 py-4 flex gap-3 justify-end" style={{ borderTop: `1px solid ${T.divider}` }}>
           <button onClick={onClose} className="btn-secondary btn-sm">Cancelar</button>
