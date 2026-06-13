@@ -296,10 +296,25 @@ function HospitaisTab() {
 
             <div style={{ borderTop: `1px solid ${T.divider}` }} className="pt-3">
               <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: T.text3 }}>Logística</p>
+
+              {/* Legenda das regras de prazo */}
+              <div className="rounded-xl p-3 mb-3 text-xs space-y-1.5" style={{ background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.15)' }}>
+                <p className="font-semibold" style={{ color: '#2563EB' }}>ℹ️ Regras de prazo de entrega de materiais</p>
+                <p style={{ color: T.text2 }}>
+                  <strong>Antecedência mínima (horas):</strong> o prazo de entrega é calculado subtraindo X horas do horário da cirurgia.
+                  Ex: hospital com 24h e cirurgia às 10h do dia 12 → prazo até 10h do dia 11.
+                </p>
+                <p style={{ color: T.text2 }}>
+                  <strong>Horário limite de recebimento:</strong> o hospital só recebe materiais até um horário fixo no dia da cirurgia.
+                  Ex: até 18:00 → independente do horário da cirurgia, o prazo é 18h daquele dia.
+                </p>
+                <p style={{ color: T.text3 }}>Preencha apenas <strong>uma</strong> das duas opções. Se ambas estiverem preenchidas, o horário fixo tem prioridade.</p>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="label">Antecedência mínima (horas)</label>
-                  <input className="input" type="number" min={0} value={form.antecedenciaMinHoras ?? ''} onChange={e => set('antecedenciaMinHoras', e.target.value ? Number(e.target.value) : undefined)} placeholder="Ex: 48" />
+                  <input className="input" type="number" min={0} value={form.antecedenciaMinHoras ?? ''} onChange={e => set('antecedenciaMinHoras', e.target.value ? Number(e.target.value) : undefined)} placeholder="Ex: 24" />
                 </div>
                 <div>
                   <label className="label">Horário limite de recebimento</label>

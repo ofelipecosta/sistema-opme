@@ -12,10 +12,9 @@ import { getAgenda } from '../../utils/agenda-storage'
 import { getSeparacoes } from '../../utils/separacao-storage'
 import { getHospitais } from '../../utils/cadastros-storage'
 import { agendaStatusLabel, agendaStatusBg } from '../../utils/agenda-helpers'
-import { statusLabel, statusColor, formatDate } from '../../utils/helpers'
+import { formatDate } from '../../utils/helpers'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTheme } from '../../contexts/ThemeContext'
-import type { RequisitionStatus } from '../../types'
 import type { AgendaItem, AgendaStatus } from '../../types/agenda'
 import type { SeparacaoRecord } from '../../types'
 import type { Hospital } from '../../utils/cadastros-storage'
@@ -511,53 +510,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* ── Agendamentos Recentes ── */}
-      {reqStats.recent.length > 0 && (
-        <div className="rounded-2xl overflow-hidden"
-          style={{ background: T.card, border: `1px solid ${T.cardBorder}`, boxShadow: T.shadow }}>
-          <div className="flex items-center justify-between px-5 py-4"
-            style={{ borderBottom: `1px solid ${T.divider}` }}>
-            <h3 className="font-semibold text-sm flex items-center gap-2" style={{ color: T.text1 }}>
-              <FileText size={15} style={{ color: C.blue }} /> Agendamentos Recentes
-            </h3>
-            <button onClick={() => navigate('/requisicoes')}
-              className="text-xs font-medium flex items-center gap-1" style={{ color: C.blue }}>
-              Ver todos <ArrowRight size={12} />
-            </button>
-          </div>
-          <div className="divide-y" style={{ borderColor: T.divider }}>
-            {reqStats.recent.map(r => (
-              <button key={r.id} onClick={() => navigate(`/requisicoes/${r.id}`)}
-                className="w-full text-left px-4 py-3.5 transition-colors"
-                style={{ background: 'transparent' }}
-                onMouseEnter={e => (e.currentTarget.style.background = T.hover)}
-                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                <div className="flex items-center gap-3">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center"
-                    style={{ background: r.tipoCirurgia === 'emergencia' ? 'rgba(255,59,48,0.10)' : `${C.blue}10` }}>
-                    {r.tipoCirurgia === 'emergencia'
-                      ? <AlertTriangle size={14} style={{ color: C.red }} />
-                      : <FileText size={14} style={{ color: C.blue }} />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-                      <span className="text-[11px] font-mono" style={{ color: T.text3 }}>{r.numero}</span>
-                      {r.tipoCirurgia === 'emergencia' && (
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md" style={{ background: C.red, color: '#fff' }}>EMERG</span>
-                      )}
-                    </div>
-                    <p className="text-sm font-semibold truncate" style={{ color: T.text1 }}>{r.pacienteNome || 'Paciente não informado'}</p>
-                    <p className="text-xs mt-0.5 truncate" style={{ color: T.text3 }}>
-                      {r.hospitalNome}{r.cirurgiaData ? ` · ${formatDate(r.cirurgiaData)}` : ''}
-                    </p>
-                  </div>
-                  <span className={`badge flex-shrink-0 text-xs ${statusColor(r.status)}`}>{statusLabel(r.status)}</span>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   )
 }
