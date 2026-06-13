@@ -13,6 +13,9 @@ export function formatRequisitionMessage(req: Requisition): string {
     : '  Nenhum material informado'
 
   const obs = req.observacoesGerais?.trim()
+  const anexos = req.anexos?.length > 0
+    ? req.anexos.map(a => `  📎 ${a.nome}\n     ${a.url}`).join('\n')
+    : null
 
   return [
     `*REQUISICAO OPME - NOS*`,
@@ -42,6 +45,7 @@ export function formatRequisitionMessage(req: Requisition): string {
     `*MATERIAIS (${req.materiais.length} ${req.materiais.length === 1 ? 'item' : 'itens'})*`,
     materiais,
     obs ? `\n*OBSERVACOES*\n${obs}` : null,
+    anexos ? `\n*ANEXOS (${req.anexos.length})*\n${anexos}` : null,
     ``,
     `_Solicitante: ${req.solicitanteNome}_`,
     `_Vendedor: ${req.vendedorNome || '-'}${req.vendedorTelefone ? ' - ' + req.vendedorTelefone : ''}_`,

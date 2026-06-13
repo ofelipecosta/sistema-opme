@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import {
   Search, Printer, Package, ChevronDown, ChevronUp,
   Calendar, User, Building2, Stethoscope, AlertTriangle,
-  CheckCircle2, Clock, FileText, History, X, Trash2, Filter,
+  CheckCircle2, Clock, FileText, History, X, Trash2, Filter, Paperclip,
 } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTheme } from '../../contexts/ThemeContext'
@@ -729,6 +729,32 @@ function ReqCard({ req, onDeleted }: { req: Requisition; onDeleted: (id: string)
                 <div>
                   <p className="text-xs font-semibold" style={{ color: '#FF9500' }}>Observações</p>
                   <p className="text-sm mt-0.5" style={{ color: T.text2 }}>{req.observacoesGerais}</p>
+                </div>
+              </div>
+            )}
+
+            {req.anexos && req.anexos.length > 0 && (
+              <div className="px-4 py-3 flex gap-2" style={{ borderTop: `1px solid ${T.divider}`, background: 'rgba(0,122,255,0.04)' }}>
+                <Paperclip size={14} style={{ color: '#007AFF', flexShrink: 0, marginTop: 2 }} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold mb-1.5" style={{ color: '#007AFF' }}>
+                    Anexos ({req.anexos.length})
+                  </p>
+                  <div className="space-y-1.5">
+                    {req.anexos.map(a => (
+                      <a key={a.id} href={a.url} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-xs hover:underline"
+                        style={{ color: '#007AFF' }}>
+                        <span className="flex-shrink-0">{a.tipo?.startsWith('image/') ? '🖼' : '📄'}</span>
+                        <span className="truncate flex-1 min-w-0">{a.nome}</span>
+                        <span className="flex-shrink-0" style={{ color: T.text3 }}>
+                          {a.tamanho < 1024 * 1024
+                            ? `${Math.round(a.tamanho / 1024)} KB`
+                            : `${(a.tamanho / 1024 / 1024).toFixed(1)} MB`}
+                        </span>
+                      </a>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
