@@ -55,11 +55,13 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
   const hover  = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'
 
   const w = collapsed ? 'lg:w-[60px]' : 'lg:w-60'
+  // on mobile the drawer is never "collapsed" — only desktop respects it
+  const col = collapsed  // alias; used below with `lg:` prefix guards
 
   return (
     <aside
       className={cn(
-        'fixed inset-y-0 left-0 z-30 w-60 flex flex-col transition-all duration-300 lg:translate-x-0 lg:static lg:z-auto',
+        'fixed inset-y-0 left-0 z-30 w-64 flex flex-col transition-all duration-300 lg:translate-x-0 lg:static lg:z-auto lg:w-60',
         w,
         open ? 'translate-x-0' : '-translate-x-full'
       )}
@@ -71,21 +73,20 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
     >
       {/* Logo */}
       <div className="flex items-center justify-between px-3 h-16 flex-shrink-0" style={{ borderBottom: `1px solid ${border}` }}>
-        {!collapsed && (
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center shadow-sm"
-              style={{ background: 'linear-gradient(135deg, #2563EB 0%, #60a5fa 100%)' }}>
-              <Stethoscope className="w-4 h-4 text-white" />
-            </div>
-            <div className="leading-none min-w-0">
-              <p className="font-bold text-sm tracking-tight truncate" style={{ color: text1 }}>Sistema OPME</p>
-              <p className="text-xs mt-0.5 font-medium" style={{ color: text3 }}>NOS</p>
-            </div>
+        {/* Always show full logo on mobile; on desktop respect collapsed */}
+        <div className={cn('flex items-center gap-2.5 min-w-0', col && 'lg:hidden')}>
+          <div className="w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center shadow-sm"
+            style={{ background: 'linear-gradient(135deg, #2563EB 0%, #60a5fa 100%)' }}>
+            <Stethoscope className="w-4 h-4 text-white" />
           </div>
-        )}
-        {collapsed && (
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm mx-auto"
-            style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5AC8FA 100%)' }}>
+          <div className="leading-none min-w-0">
+            <p className="font-bold text-sm tracking-tight truncate" style={{ color: text1 }}>Sistema OPME</p>
+            <p className="text-xs mt-0.5 font-medium" style={{ color: text3 }}>NOS</p>
+          </div>
+        </div>
+        {col && (
+          <div className="hidden lg:flex w-8 h-8 rounded-xl items-center justify-center shadow-sm mx-auto"
+            style={{ background: 'linear-gradient(135deg, #2563EB 0%, #60a5fa 100%)' }}>
             <Stethoscope className="w-4 h-4 text-white" />
           </div>
         )}
@@ -96,18 +97,16 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
 
       {/* Nav */}
       <nav className="flex-1 px-2 py-4 space-y-0.5 overflow-y-auto overflow-x-hidden">
-        {!collapsed && (
-          <p className="px-3 pt-1 pb-2 text-[10px] font-bold tracking-widest uppercase" style={{ color: text3 }}>Menu</p>
-        )}
+        <p className={cn('px-3 pt-1 pb-2 text-[10px] font-bold tracking-widest uppercase', col && 'lg:hidden')} style={{ color: text3 }}>Menu</p>
 
         {visibleMain.map(item => (
           <NavLink
             key={item.to} to={item.to} end={item.end}
             onClick={onClose}
-            title={collapsed ? item.label : undefined}
+            title={col ? item.label : undefined}
             className={({ isActive }) => cn(
               'flex items-center gap-2.5 rounded-xl text-sm font-medium transition-all duration-150',
-              collapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2.5',
+              col ? 'lg:justify-center lg:px-0 px-3 py-2.5' : 'px-3 py-2.5',
               isActive ? '' : 'hover:bg-black/[0.04]'
             )}
             style={({ isActive }) => isActive
@@ -118,7 +117,7 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
             {({ isActive }) => (
               <>
                 <item.icon className="w-4 h-4 flex-shrink-0" style={{ color: isActive ? '#007AFF' : text3 }} />
-                {!collapsed && item.label}
+                <span className={cn(col && 'lg:hidden')}>{item.label}</span>
               </>
             )}
           </NavLink>
@@ -127,34 +126,30 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
         {/* Painel TV */}
         {nav?.configuracoes && (
           <a href="/tv" target="_blank" rel="noopener noreferrer" onClick={onClose}
-            title={collapsed ? 'Painel TV' : undefined}
+            title={col ? 'Painel TV' : undefined}
             className={cn(
               'flex items-center gap-2.5 rounded-xl text-sm font-medium transition-all duration-150',
-              collapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2.5'
+              col ? 'lg:justify-center lg:px-0 px-3 py-2.5' : 'px-3 py-2.5'
             )}
             style={{ color: text2 }}
             onMouseEnter={e => (e.currentTarget.style.background = hover)}
             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
             <Tv className="w-4 h-4 flex-shrink-0" style={{ color: text3 }} />
-            {!collapsed && (
-              <>
-                Painel TV
-                <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-md"
-                  style={{ background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)', color: text3 }}>↗</span>
-              </>
-            )}
+            <span className={cn('flex items-center gap-1 flex-1', col && 'lg:hidden')}>
+              Painel TV
+              <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-md"
+                style={{ background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)', color: text3 }}>↗</span>
+            </span>
           </a>
         )}
 
-        {/* Configurações — submenu expandível (desktop) */}
-        {hasConfigMenu && !collapsed && (
-          <div className="pt-1">
+        {/* Configurações — submenu completo: sempre mobile, desktop só se não colapsado */}
+        {hasConfigMenu && (
+          <div className={cn('pt-1', col && 'lg:hidden')}>
             <button
               onClick={() => setConfigOpen(v => !v)}
               className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150"
-              style={isConfigActive
-                ? { background: 'rgba(0,122,255,0.12)', color: '#007AFF' }
-                : { color: text2 }}
+              style={isConfigActive ? { background: 'rgba(0,122,255,0.12)', color: '#007AFF' } : { color: text2 }}
               onMouseEnter={e => { if (!isConfigActive) (e.currentTarget as HTMLElement).style.background = hover }}
               onMouseLeave={e => { if (!isConfigActive) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
             >
@@ -192,13 +187,13 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
           </div>
         )}
 
-        {/* Configurações collapsed: primeiro item visível como ícone */}
-        {hasConfigMenu && collapsed && visibleConfig[0] && (
+        {/* Configurações ícone — desktop colapsado apenas */}
+        {hasConfigMenu && col && visibleConfig[0] && (
           <NavLink
             to={visibleConfig[0].to}
             title={visibleConfig[0].label}
             className={({ isActive }) => cn(
-              'flex items-center justify-center rounded-xl py-2.5 transition-all duration-150',
+              'hidden lg:flex items-center justify-center rounded-xl py-2.5 transition-all duration-150',
               isActive ? '' : 'hover:bg-black/[0.04]'
             )}
             style={({ isActive }) => isActive
@@ -233,33 +228,31 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
         </button>
       </div>
 
-      {/* User info */}
-      {!collapsed && (
-        <div className="px-3 py-4" style={{ borderTop: `1px solid ${border}` }}>
-          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl mb-1"
-            style={{ background: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }}>
-            <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-              style={{ background: 'rgba(0,122,255,0.12)', color: '#007AFF' }}>
-              {user?.nome?.charAt(0)?.toUpperCase()}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold truncate leading-none" style={{ color: text1 }}>{user?.nome}</p>
-              <p className="text-xs truncate mt-0.5 capitalize" style={{ color: text3 }}>{user?.perfil}</p>
-            </div>
+      {/* User info — full: always mobile, desktop only when not collapsed */}
+      <div className={cn('px-3 py-4', col && 'lg:hidden')} style={{ borderTop: `1px solid ${border}` }}>
+        <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl mb-1"
+          style={{ background: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }}>
+          <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+            style={{ background: 'rgba(0,122,255,0.12)', color: '#007AFF' }}>
+            {user?.nome?.charAt(0)?.toUpperCase()}
           </div>
-          <button onClick={logout}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-colors hover:bg-red-50"
-            style={{ color: text3 }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#FF3B30' }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = text3 }}>
-            <LogOut className="w-4 h-4" /> Sair
-          </button>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold truncate leading-none" style={{ color: text1 }}>{user?.nome}</p>
+            <p className="text-xs truncate mt-0.5 capitalize" style={{ color: text3 }}>{user?.perfil}</p>
+          </div>
         </div>
-      )}
+        <button onClick={logout}
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-colors hover:bg-red-50"
+          style={{ color: text3 }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#FF3B30' }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = text3 }}>
+          <LogOut className="w-4 h-4" /> Sair
+        </button>
+      </div>
 
-      {/* User avatar collapsed */}
-      {collapsed && (
-        <div className="px-2 py-3 flex flex-col items-center gap-2" style={{ borderTop: `1px solid ${border}` }}>
+      {/* User avatar — desktop collapsed only */}
+      {col && (
+        <div className="hidden lg:flex px-2 py-3 flex-col items-center gap-2" style={{ borderTop: `1px solid ${border}` }}>
           <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
             style={{ background: 'rgba(0,122,255,0.12)', color: '#007AFF' }}>
             {user?.nome?.charAt(0)?.toUpperCase()}
