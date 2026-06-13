@@ -149,6 +149,7 @@ export default function RequisitionForm() {
         // Upload pending files
         if (pendingFiles.length > 0) {
           const attachments = []
+          let uploadErrors = 0
           for (const pf of pendingFiles) {
             try {
               const result = await uploadAnexo(saved.id, pf.file)
@@ -162,11 +163,15 @@ export default function RequisitionForm() {
                 uploadedBy: user.nome,
               })
             } catch (e) {
-              console.warn('Upload failed for', pf.file.name, e)
+              uploadErrors++
+              console.error('Upload failed for', pf.file.name, e)
             }
           }
           if (attachments.length > 0) {
             await updateRequisition(saved.id, { anexos: [...(saved.anexos || []), ...attachments] } as Partial<Requisition>, user, 'Anexos adicionados')
+          }
+          if (uploadErrors > 0) {
+            toast.error(`${uploadErrors} ${uploadErrors === 1 ? 'arquivo não foi enviado' : 'arquivos não foram enviados'}. Verifique as permissões do Storage no Supabase.`)
           }
         }
 
