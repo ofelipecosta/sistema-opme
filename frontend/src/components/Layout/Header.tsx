@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Menu, Bell, FileText, AlertTriangle, CheckCircle2, Trash2, Moon, Sun } from 'lucide-react'
+import { Bell, FileText, AlertTriangle, CheckCircle2, Trash2, Moon, Sun } from 'lucide-react'
 import { useTheme } from '../../contexts/ThemeContext'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
@@ -11,7 +11,6 @@ const NOTIF_CLEARED_KEY = 'opme_notif_cleared_at'
 function getNotifClearedAt(): string { return localStorage.getItem(NOTIF_CLEARED_KEY) || '' }
 function clearNotifications(): void  { localStorage.setItem(NOTIF_CLEARED_KEY, new Date().toISOString()) }
 
-interface Props { onMenuClick: () => void }
 
 const titles: Record<string, string> = {
   '/':                 'Dashboard',
@@ -25,7 +24,7 @@ const titles: Record<string, string> = {
   '/separacao':        'Separação de Materiais',
 }
 
-export default function Header({ onMenuClick }: Props) {
+export default function Header() {
   const location  = useLocation()
   const navigate  = useNavigate()
   const { canEdit, isAdmin, user } = useAuth()
@@ -74,11 +73,7 @@ export default function Header({ onMenuClick }: Props) {
   return (
     <header className="px-4 h-14 flex items-center gap-3 sticky top-0 z-10"
       style={{ background: hBg, backdropFilter: 'blur(20px) saturate(1.8)', borderBottom: `1px solid ${hBorder}` }}>
-      <button onClick={onMenuClick} className="lg:hidden p-1.5 rounded-lg transition-colors" style={{ color: hText3 }}>
-        <Menu className="w-5 h-5" />
-      </button>
-
-      <h1 className="text-sm font-semibold flex-1 truncate" style={{ color: hText, letterSpacing: '-0.01em' }}>{title}</h1>
+<h1 className="text-sm font-semibold flex-1 truncate" style={{ color: hText, letterSpacing: '-0.01em' }}>{title}</h1>
 
       <div className="flex items-center gap-2">
         {/* Dark mode toggle */}

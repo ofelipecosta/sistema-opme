@@ -20,19 +20,12 @@ export default function Layout() {
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: isDark ? '#111827' : '#f1f5f9' }}>
       <Sidebar
-        open={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
         collapsed={collapsed}
         onToggleCollapse={() => setCollapsed(v => !v)}
       />
 
-      {sidebarOpen && (
-        <div className="fixed inset-0 bg-black/40 z-20 lg:hidden"
-          onClick={() => setSidebarOpen(false)} />
-      )}
-
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <Header onMenuClick={() => setSidebarOpen(true)} />
+        <Header />
         <main className="flex-1 overflow-y-auto">
           <div className={collapsed ? 'p-2 lg:p-3' : 'p-3 lg:p-4 max-w-screen-2xl mx-auto'}>
             <Outlet />
