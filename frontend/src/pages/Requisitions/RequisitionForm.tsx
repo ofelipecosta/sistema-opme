@@ -1,31 +1,45 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useForm, useFieldArray } from 'react-hook-form'
 import {
   Plus, Trash2, Send, AlertTriangle,
   User, Stethoscope, Building2, CalendarDays, Clock, ShieldCheck,
-  Package, FileText, ChevronLeft, Zap, MessageCircle, Mail, X, CheckCircle2
+  Package, FileText, ChevronLeft, Zap, MessageCircle, Mail, X, CheckCircle2,
+  Paperclip,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { getRequisitionById, createRequisition, updateRequisition } from '../../utils/storage'
 import { syncRequisitionToAgenda } from '../../utils/agenda-storage'
 import { useAuth } from '../../contexts/AuthContext'
-import { CONVENIO_OPTIONS, formatDate } from '../../utils/helpers'
+import { formatDate } from '../../utils/helpers'
 import { shareWhatsApp, shareEmail } from '../../utils/share'
 import { loadSettings } from '../../utils/settings-storage'
-import { emailNovaRequisicao } from '../../utils/email-service'
 import type { Requisition, OPMEItem } from '../../types'
+import AutocompleteInput, { type AutocompleteOption } from '../../components/AutocompleteInput'
+import KitChecklist from '../../components/KitChecklist'
+import FileUploadArea, { type PendingFile } from '../../components/FileUploadArea'
+import {
+  getMedicos, createMedico,
+  getHospitais, createHospital,
+  getConvenios, createConvenio,
+  getProcedimentos, createProcedimento,
+  getKitItems, uploadAnexo,
+  type Medico, type Hospital, type Convenio, type Procedimento, type KitItem,
+} from '../../utils/cadastros-storage'
 
 type FormValues = Omit<Requisition, 'id'|'numero'|'status'|'datasolicitacao'|'solicitanteId'|'solicitanteNome'|'anexos'|'auditoria'|'createdAt'|'updatedAt'>
 
 const today = new Date().toISOString().split('T')[0]
 
-/* ── Uppercase handler for text inputs ── */
 function toUpper(e: React.FormEvent<HTMLInputElement | HTMLTextAreaElement>) {
   const el = e.currentTarget
   const pos = el.selectionStart
   el.value = el.value.toUpperCase()
   el.setSelectionRange(pos, pos)
+}
+
+function toOpts(items: { id: string; nome: string; [k: string]: unknown }[], subKey?: string): AutocompleteOption[] {
+  return items.map(i => ({ id: i.id, nome: i.nome, sub: subKey ? (i[subKey] as string | undefined) : undefined }))
 }
 
 export default function RequisitionForm() {
@@ -34,12 +48,20 @@ export default function RequisitionForm() {
   const { user }   = useAuth()
   const isEdit     = !!id
   const [saving, setSaving]         = useState(false)
-  const [convenioOutros, setConvenioOutros] = useState('')
   const [summaryData, setSummaryData] = useState<FormValues | null>(null)
-  const [shareIntent, setShareIntent] = useState<'default' | 'whatsapp' | 'email'>('default')
   const [savedReq, setSavedReq]     = useState<Requisition | null>(null)
 
-  const settings = loadSettings()
+  // Cadastros
+  const [medicos,      setMedicos]      = useState<Medico[]>([])
+  const [hospitais,    setHospitais]    = useState<Hospital[]>([])
+  const [convenios,    setConvenios]    = useState<Convenio[]>([])
+  const [procedimentos,setProcedimentos]= useState<Procedimento[]>([])
+  const [kitItems,     setKitItems]     = useState<KitItem[]>([])
+  const [kitSelected,  setKitSelected]  = useState<Set<string>>(new Set())
+  const [selectedProcId, setSelectedProcId] = useState<string | null>(null)
+
+  // Files
+  const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([])
 
   const { register, control, handleSubmit, watch, reset, setValue, formState: { errors } } = useForm<FormValues>({
     defaultValues: {
@@ -53,9 +75,17 @@ export default function RequisitionForm() {
 
   const { fields, append, remove } = useFieldArray({ control, name: 'materiais' })
   const tipoCirurgia  = watch('tipoCirurgia')
-  const convenioValue = watch('cirurgiaConvenio')
   const isEmergency   = tipoCirurgia === 'emergencia'
-  const isOutros      = convenioValue === 'Outros'
+
+  // Load cadastros on mount
+  useEffect(() => {
+    Promise.allSettled([
+      getMedicos().then(setMedicos).catch(() => {}),
+      getHospitais().then(setHospitais).catch(() => {}),
+      getConvenios().then(setConvenios).catch(() => {}),
+      getProcedimentos().then(setProcedimentos).catch(() => {}),
+    ])
+  }, [])
 
   useEffect(() => {
     if (isEdit && id) {
@@ -63,48 +93,84 @@ export default function RequisitionForm() {
         if (req) {
           const { id: _id, numero: _n, status: _s, datasolicitacao: _d, solicitanteId: _si,
             solicitanteNome: _sn, anexos: _a, auditoria: _au, createdAt: _c, updatedAt: _u, ...rest } = req
-          const inList = CONVENIO_OPTIONS.includes(rest.cirurgiaConvenio || '')
-          if (!inList && rest.cirurgiaConvenio) {
-            setConvenioOutros(rest.cirurgiaConvenio)
-            rest.cirurgiaConvenio = 'Outros'
-          }
           reset(rest)
         }
       })
     }
   }, [id, isEdit, reset])
 
-  useEffect(() => { if (!isOutros) setConvenioOutros('') }, [isOutros])
+  async function handleProcedimentoSelect(opt: AutocompleteOption) {
+    if (!opt.id) { setKitItems([]); setKitSelected(new Set()); setSelectedProcId(null); return }
+    setSelectedProcId(opt.id)
+    try {
+      const items = await getKitItems(opt.id)
+      setKitItems(items)
+      setKitSelected(new Set(items.map(i => i.id)))
+    } catch {
+      setKitItems([])
+      setKitSelected(new Set())
+    }
+  }
+
+  function applyKit() {
+    const selected = kitItems.filter(i => kitSelected.has(i.id))
+    // Remove existing kit-added items (can't distinguish, so just append)
+    for (const item of selected) {
+      const alreadyExists = fields.some(f => f.descricao?.toLowerCase() === item.nome.toLowerCase())
+      if (!alreadyExists) {
+        append({ id: Math.random().toString(36).substr(2,9), codigo:'', descricao: item.nome, fabricante:'', quantidade:1, unidade:'UN', observacao:'' } as OPMEItem)
+      }
+    }
+    if (selected.length) toast.success(`${selected.length} ${selected.length === 1 ? 'item adicionado' : 'itens adicionados'} ao material`)
+  }
 
   function addMaterial() {
     append({ id: Math.random().toString(36).substr(2,9), codigo:'', descricao:'', fabricante:'', quantidade:1, unidade:'UN', observacao:'' } as OPMEItem)
   }
 
-  /* Called after summary confirmation */
   async function onSubmit(data: FormValues) {
     if (!user) return
     setSaving(true)
     setSummaryData(null)
     try {
-      const finalData = {
-        ...data,
-        cirurgiaConvenio: isOutros && convenioOutros.trim() ? convenioOutros.trim() : data.cirurgiaConvenio,
-      }
-
       let saved: Requisition | null = null
       if (isEdit && id) {
-        await updateRequisition(id, finalData, user, 'Envio')
+        await updateRequisition(id, data, user, 'Envio')
         saved = await updateRequisition(id, { status: 'enviada' } as Partial<Requisition>, user, 'Status: Enviada')
         toast.success('Agendamento enviado!')
       } else {
-        saved = await createRequisition({ ...finalData, status: 'enviada' }, user)
+        saved = await createRequisition({ ...data, status: 'enviada' }, user)
         toast.success('Agendamento enviado!')
       }
 
       if (saved) {
         await syncRequisitionToAgenda(saved)
+
+        // Upload pending files
+        if (pendingFiles.length > 0) {
+          const attachments = []
+          for (const pf of pendingFiles) {
+            try {
+              const result = await uploadAnexo(saved.id, pf.file)
+              attachments.push({
+                id: Math.random().toString(36).substr(2,9),
+                nome: result.nome,
+                tipo: result.tipo,
+                tamanho: result.tamanho,
+                url: result.url,
+                uploadedAt: new Date().toISOString(),
+                uploadedBy: user.nome,
+              })
+            } catch (e) {
+              console.warn('Upload failed for', pf.file.name, e)
+            }
+          }
+          if (attachments.length > 0) {
+            await updateRequisition(saved.id, { anexos: [...(saved.anexos || []), ...attachments] } as Partial<Requisition>, user, 'Anexos adicionados')
+          }
+        }
+
         setSavedReq(saved)
-        // não navega — mostra tela de sucesso com botão de compartilhar
         return
       }
 
@@ -114,17 +180,13 @@ export default function RequisitionForm() {
     }
   }
 
-  function handleSendClick(intent: 'default' | 'whatsapp' | 'email' = 'default') {
-    setShareIntent(intent)
+  function handleSendClick() {
     handleSubmit(data => setSummaryData(data))()
   }
-
-  const sendChannel = isEmergency ? 'WhatsApp' : 'E-mail'
 
   return (
     <div className="max-w-lg mx-auto pb-36 sm:pb-6">
 
-      {/* Tela de sucesso com botão de compartilhar */}
       {savedReq && (
         <SuccessModal
           req={savedReq}
@@ -136,16 +198,14 @@ export default function RequisitionForm() {
         />
       )}
 
-      {/* Summary modal */}
       {!savedReq && summaryData && (
         <SummaryModal
           data={summaryData}
-          convenioOutros={isOutros ? convenioOutros : ''}
           isEmergency={isEmergency}
-          channel={sendChannel}
           onConfirm={() => onSubmit(summaryData)}
           onCancel={() => setSummaryData(null)}
           saving={saving}
+          fileCount={pendingFiles.length}
         />
       )}
 
@@ -178,33 +238,95 @@ export default function RequisitionForm() {
         </div>
         <input type="hidden" {...register('tipoCirurgia')} />
 
+        {/* Paciente */}
         <MobileField icon={<User className="w-4 h-4" />} label="Paciente">
           <input className="mobile-input uppercase" {...register('pacienteNome')} onInput={toUpper}
             placeholder="Nome do paciente" />
         </MobileField>
 
+        {/* Médico — autocomplete */}
+        <MobileField icon={<Stethoscope className="w-4 h-4" />} label="Médico" required error={errors.medicoNome?.message}>
+          <AutocompleteInput
+            value={watch('medicoNome') || ''}
+            onChange={v => setValue('medicoNome', v)}
+            options={toOpts(medicos, 'especialidade')}
+            placeholder="DR(A). NOME DO MÉDICO"
+            allowCreate
+            onCreateNew={async nome => {
+              try {
+                const m = await createMedico(nome)
+                setMedicos(prev => [...prev, m].sort((a, b) => a.nome.localeCompare(b.nome)))
+                toast.success('Médico cadastrado')
+                return { id: m.id, nome: m.nome }
+              } catch { toast.error('Erro ao cadastrar médico'); return null }
+            }}
+          />
+          <input type="hidden" {...register('medicoNome', { required: 'Informe o médico' })} />
+        </MobileField>
+
+        {/* Procedimento — autocomplete + kit */}
         <MobileField icon={<Stethoscope className="w-4 h-4" />} label="Cirurgia / Procedimento" required error={errors.cirurgiaProcedimento?.message}>
-          <input className="mobile-input uppercase" {...register('cirurgiaProcedimento', { required: 'Informe o procedimento' })}
-            onInput={toUpper} placeholder="Ex: ARTROPLASTIA, FRATURA DE FÊMUR..." />
+          <AutocompleteInput
+            value={watch('cirurgiaProcedimento') || ''}
+            onChange={v => setValue('cirurgiaProcedimento', v)}
+            onSelect={async opt => {
+              setValue('cirurgiaProcedimento', opt.nome)
+              await handleProcedimentoSelect(opt)
+            }}
+            options={toOpts(procedimentos)}
+            placeholder="Ex: ARTROPLASTIA DE JOELHO"
+            allowCreate
+            onCreateNew={async nome => {
+              try {
+                const p = await createProcedimento(nome)
+                setProcedimentos(prev => [...prev, p].sort((a, b) => a.nome.localeCompare(b.nome)))
+                toast.success('Procedimento cadastrado')
+                return { id: p.id, nome: p.nome }
+              } catch { toast.error('Erro ao cadastrar procedimento'); return null }
+            }}
+          />
+          <input type="hidden" {...register('cirurgiaProcedimento', { required: 'Informe o procedimento' })} />
         </MobileField>
 
+        {/* Kit checklist — shown when procedimento has kit items */}
+        {kitItems.length > 0 && (
+          <div>
+            <KitChecklist
+              procedimentoNome={watch('cirurgiaProcedimento') || ''}
+              items={kitItems}
+              selected={kitSelected}
+              onChange={setKitSelected}
+            />
+            <button
+              type="button"
+              onClick={applyKit}
+              className="mt-2 w-full py-2.5 rounded-xl text-sm font-semibold text-primary-700 bg-primary-50 border border-primary-200 hover:bg-primary-100 transition-colors"
+            >
+              Adicionar {kitSelected.size} {kitSelected.size === 1 ? 'item' : 'itens'} ao material →
+            </button>
+          </div>
+        )}
+
+        {/* Convênio — autocomplete */}
         <MobileField icon={<ShieldCheck className="w-4 h-4" />} label="Convênio">
-          <select className="mobile-input" {...register('cirurgiaConvenio')}>
-            <option value="">Selecionar convênio</option>
-            {CONVENIO_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-          {isOutros && (
-            <input className="mobile-input mt-2 uppercase" value={convenioOutros}
-              onChange={e => setConvenioOutros(e.target.value.toUpperCase())}
-              placeholder="NOME DO CONVÊNIO..." autoFocus />
-          )}
+          <AutocompleteInput
+            value={watch('cirurgiaConvenio') || ''}
+            onChange={v => setValue('cirurgiaConvenio', v)}
+            options={toOpts(convenios)}
+            placeholder="UNIMED, BRADESCO, PARTICULAR..."
+            allowCreate
+            onCreateNew={async nome => {
+              try {
+                const c = await createConvenio(nome)
+                setConvenios(prev => [...prev, c].sort((a, b) => a.nome.localeCompare(b.nome)))
+                toast.success('Convênio cadastrado')
+                return { id: c.id, nome: c.nome }
+              } catch { toast.error('Erro ao cadastrar convênio'); return null }
+            }}
+          />
         </MobileField>
 
-        <MobileField icon={<User className="w-4 h-4" />} label="Médico" required error={errors.medicoNome?.message}>
-          <input className="mobile-input uppercase" {...register('medicoNome', { required: 'Informe o médico' })}
-            onInput={toUpper} placeholder="DR(A). NOME DO MÉDICO" />
-        </MobileField>
-
+        {/* Data + Horário */}
         <div className="grid grid-cols-2 gap-3">
           {(() => {
             const f = register('cirurgiaData', { required: 'Informe a data', validate: v => v >= today || 'Data não pode ser no passado' })
@@ -216,16 +338,31 @@ export default function RequisitionForm() {
           })()}
         </div>
 
+        {/* Hospital — autocomplete */}
         <MobileField icon={<Building2 className="w-4 h-4" />} label="Hospital" required error={errors.hospitalNome?.message}>
-          <input className="mobile-input uppercase" {...register('hospitalNome', { required: 'Informe o hospital' })}
-            onInput={toUpper} placeholder="NOME DO HOSPITAL" />
+          <AutocompleteInput
+            value={watch('hospitalNome') || ''}
+            onChange={v => setValue('hospitalNome', v)}
+            options={toOpts(hospitais, 'cidade')}
+            placeholder="NOME DO HOSPITAL"
+            allowCreate
+            onCreateNew={async nome => {
+              try {
+                const h = await createHospital(nome)
+                setHospitais(prev => [...prev, h].sort((a, b) => a.nome.localeCompare(b.nome)))
+                toast.success('Hospital cadastrado')
+                return { id: h.id, nome: h.nome }
+              } catch { toast.error('Erro ao cadastrar hospital'); return null }
+            }}
+          />
+          <input type="hidden" {...register('hospitalNome', { required: 'Informe o hospital' })} />
         </MobileField>
 
-        {/* Materiais */}
+        {/* Materiais OPME */}
         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
           <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-100">
             <Package className="w-4 h-4 text-primary-500" />
-            <span className="text-sm font-semibold text-slate-700">Material</span>
+            <span className="text-sm font-semibold text-slate-700">Material OPME</span>
             {fields.length > 0 && (
               <span className="badge bg-primary-50 text-primary-600 text-xs">{fields.length}</span>
             )}
@@ -250,7 +387,6 @@ export default function RequisitionForm() {
                           onInput={toUpper}
                           placeholder={`Material ${idx + 1}`} />
                       </div>
-                      {/* +/- quantity stepper */}
                       <div className="flex items-center gap-1 flex-shrink-0">
                         <button type="button"
                           onClick={() => setValue(`materiais.${idx}.quantidade`, Math.max(1, Number(qty) - 1))}
@@ -280,25 +416,38 @@ export default function RequisitionForm() {
           )}
         </div>
 
+        {/* Observações */}
         <MobileField icon={<FileText className="w-4 h-4" />} label="Observações">
           <textarea className="mobile-input min-h-[80px] resize-none uppercase"
             {...register('observacoesGerais')} onInput={toUpper}
-            placeholder="INSTRUÇÕES DE ENTREGA, INFORMAÇÕES ESPECIAIS..." />
+            placeholder="INSTRUÇÕES DE ENTREGA, INFORMAÇÕES ESPECIAIS, MATERIAL CONSIGNADO..." />
         </MobileField>
+
+        {/* Anexos */}
+        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-100">
+            <Paperclip className="w-4 h-4 text-primary-500" />
+            <span className="text-sm font-semibold text-slate-700">Anexos</span>
+            {pendingFiles.length > 0 && (
+              <span className="badge bg-primary-50 text-primary-600 text-xs">{pendingFiles.length}</span>
+            )}
+          </div>
+          <div className="px-4 py-3">
+            <FileUploadArea files={pendingFiles} onChange={setPendingFiles} />
+          </div>
+        </div>
 
       </form>
 
-      {/* ── Action bar ── */}
+      {/* Action bar */}
       <div className="fixed bottom-0 left-0 right-0 sm:static sm:bottom-auto sm:left-auto sm:right-auto
                       backdrop-blur-sm sm:backdrop-blur-none
                       border-t border-slate-200/80 sm:border-0
                       p-4 sm:p-0 sm:pt-4 z-20"
         style={{ background: 'rgba(255,255,255,0.95)' }}>
-
-        {/* Botão Agendar */}
         <button
           type="button"
-          onClick={() => handleSendClick('default')}
+          onClick={handleSendClick}
           disabled={saving}
           className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-bold transition-all active:scale-[0.97] disabled:opacity-50 text-white shadow-md"
           style={{ background: isEmergency ? '#FF3B30' : '#007AFF' }}
@@ -312,17 +461,11 @@ export default function RequisitionForm() {
 }
 
 /* ── Success Modal ── */
-function SuccessModal({ req, onShare, onClose }: {
-  req: Requisition
-  onShare: () => void
-  onClose: () => void
-}) {
+function SuccessModal({ req, onShare, onClose }: { req: Requisition; onShare: () => void; onClose: () => void }) {
   const isEmergency = req.tipoCirurgia === 'emergencia'
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
       <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
-
-        {/* Ícone de sucesso */}
         <div className="flex flex-col items-center pt-8 pb-4 px-6 text-center">
           <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-4">
             <CheckCircle2 className="w-8 h-8 text-green-500" />
@@ -333,18 +476,10 @@ function SuccessModal({ req, onShare, onClose }: {
             {req.numero}
           </p>
         </div>
-
-        {/* Sugestão de compartilhamento */}
         <div className="px-6 pb-2">
-          <div className={`rounded-2xl px-4 py-3 flex items-center gap-3 ${
-            isEmergency ? 'bg-green-50 border border-green-200' : 'bg-blue-50 border border-blue-200'
-          }`}>
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
-              isEmergency ? 'bg-green-500' : 'bg-blue-500'
-            }`}>
-              {isEmergency
-                ? <MessageCircle className="w-5 h-5 text-white" />
-                : <Mail className="w-5 h-5 text-white" />}
+          <div className={`rounded-2xl px-4 py-3 flex items-center gap-3 ${isEmergency ? 'bg-green-50 border border-green-200' : 'bg-blue-50 border border-blue-200'}`}>
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${isEmergency ? 'bg-green-500' : 'bg-blue-500'}`}>
+              {isEmergency ? <MessageCircle className="w-5 h-5 text-white" /> : <Mail className="w-5 h-5 text-white" />}
             </div>
             <div>
               <p className={`text-sm font-bold ${isEmergency ? 'text-green-800' : 'text-blue-800'}`}>
@@ -356,22 +491,16 @@ function SuccessModal({ req, onShare, onClose }: {
             </div>
           </div>
         </div>
-
-        {/* Botões */}
         <div className="px-6 pb-6 pt-3 flex flex-col gap-2">
-          <button
-            onClick={() => { onShare(); onClose() }}
+          <button onClick={() => { onShare(); onClose() }}
             className="w-full py-3.5 rounded-2xl text-white text-sm font-bold flex items-center justify-center gap-2 active:scale-[0.97] transition-all"
-            style={{ background: '#007AFF' }}
-          >
+            style={{ background: '#007AFF' }}>
             {isEmergency ? <MessageCircle className="w-4 h-4" /> : <Mail className="w-4 h-4" />}
             {isEmergency ? 'Enviar por WhatsApp' : 'Enviar por E-mail'}
           </button>
-          <button
-            onClick={onClose}
+          <button onClick={onClose}
             className="w-full py-3 rounded-2xl text-sm font-medium transition-colors active:scale-[0.97]"
-            style={{ background: 'rgba(0,0,0,0.05)', color: '#48484A' }}
-          >
+            style={{ background: 'rgba(0,0,0,0.05)', color: '#48484A' }}>
             Ver agendamento
           </button>
         </div>
@@ -381,16 +510,9 @@ function SuccessModal({ req, onShare, onClose }: {
 }
 
 /* ── Summary Modal ── */
-function SummaryModal({ data, convenioOutros, isEmergency, channel, onConfirm, onCancel, saving }: {
-  data: FormValues
-  convenioOutros: string
-  isEmergency: boolean
-  channel: string
-  onConfirm: () => void
-  onCancel: () => void
-  saving: boolean
+function SummaryModal({ data, isEmergency, onConfirm, onCancel, saving, fileCount }: {
+  data: FormValues; isEmergency: boolean; onConfirm: () => void; onCancel: () => void; saving: boolean; fileCount: number
 }) {
-  const convenio = (data.cirurgiaConvenio === 'Outros' && convenioOutros) ? convenioOutros : data.cirurgiaConvenio
   const dataHora = data.cirurgiaData
     ? `${data.cirurgiaData.split('-').reverse().join('/')}${data.cirurgiaHorario ? ' às ' + data.cirurgiaHorario : ''}`
     : '—'
@@ -398,26 +520,17 @@ function SummaryModal({ data, convenioOutros, isEmergency, channel, onConfirm, o
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
       <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
-
-        {/* Header */}
         <div className={`px-5 py-4 flex items-center justify-between ${isEmergency ? 'bg-red-50' : 'bg-primary-50'}`}>
           <div className="flex items-center gap-2.5">
-            {isEmergency
-              ? <AlertTriangle className="w-5 h-5 text-red-500" />
-              : <CheckCircle2 className="w-5 h-5 text-primary-600" />}
+            {isEmergency ? <AlertTriangle className="w-5 h-5 text-red-500" /> : <CheckCircle2 className="w-5 h-5 text-primary-600" />}
             <div>
-              <p className={`font-bold text-sm ${isEmergency ? 'text-red-700' : 'text-primary-700'}`}>
-                Confirmar Envio
-              </p>
+              <p className={`font-bold text-sm ${isEmergency ? 'text-red-700' : 'text-primary-700'}`}>Confirmar Envio</p>
               <p className="text-xs text-slate-500">Confira os dados antes de enviar</p>
             </div>
           </div>
-          <button onClick={onCancel} className="p-1.5 rounded-lg hover:bg-black/5 text-slate-400">
-            <X className="w-4 h-4" />
-          </button>
+          <button onClick={onCancel} className="p-1.5 rounded-lg hover:bg-black/5 text-slate-400"><X className="w-4 h-4" /></button>
         </div>
 
-        {/* Summary */}
         <div className="px-5 py-4 space-y-3 max-h-[60vh] overflow-y-auto">
           {isEmergency && (
             <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
@@ -425,72 +538,47 @@ function SummaryModal({ data, convenioOutros, isEmergency, channel, onConfirm, o
               <span className="text-xs font-bold text-red-700 uppercase tracking-wide">Cirurgia de Emergência</span>
             </div>
           )}
-
           <SummaryRow label="Paciente"     value={data.pacienteNome} />
           <SummaryRow label="Hospital"     value={data.hospitalNome} />
           <SummaryRow label="Médico"       value={data.medicoNome} />
           <SummaryRow label="Procedimento" value={data.cirurgiaProcedimento} />
           <SummaryRow label="Data / Hora"  value={dataHora} highlight />
-          <SummaryRow label="Convênio"     value={convenio} />
+          <SummaryRow label="Convênio"     value={data.cirurgiaConvenio} />
           {data.materiais?.length > 0 && (
             <div>
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">
-                Materiais ({data.materiais.length})
-              </p>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Materiais ({data.materiais.length})</p>
               <div className="space-y-1">
                 {data.materiais.map((m, i) => (
-                  <p key={i} className="text-sm text-slate-700">
-                    • {m.quantidade}x {m.descricao || '—'}
-                  </p>
+                  <p key={i} className="text-sm text-slate-700">• {m.quantidade}x {m.descricao || '—'}</p>
                 ))}
               </div>
             </div>
           )}
-          {data.observacoesGerais && (
-            <SummaryRow label="Observações" value={data.observacoesGerais} />
+          {data.observacoesGerais && <SummaryRow label="Observações" value={data.observacoesGerais} />}
+          {fileCount > 0 && (
+            <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">
+              <Paperclip className="w-3.5 h-3.5 text-blue-500" />
+              <span className="text-xs text-blue-700">{fileCount} {fileCount === 1 ? 'arquivo' : 'arquivos'} para upload</span>
+            </div>
           )}
         </div>
 
-        {/* Suggested send action */}
-        <div className={`mx-5 mb-3 rounded-2xl px-4 py-3 flex items-center gap-3 ${
-          isEmergency
-            ? 'bg-green-50 border border-green-200'
-            : 'bg-blue-50 border border-blue-200'
-        }`}>
-          <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
-            isEmergency ? 'bg-green-500' : 'bg-blue-500'
-          }`}>
-            {isEmergency
-              ? <MessageCircle className="w-5 h-5 text-white" />
-              : <Mail className="w-5 h-5 text-white" />}
+        <div className={`mx-5 mb-3 rounded-2xl px-4 py-3 flex items-center gap-3 ${isEmergency ? 'bg-green-50 border border-green-200' : 'bg-blue-50 border border-blue-200'}`}>
+          <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${isEmergency ? 'bg-green-500' : 'bg-blue-500'}`}>
+            {isEmergency ? <MessageCircle className="w-5 h-5 text-white" /> : <Mail className="w-5 h-5 text-white" />}
           </div>
-          <div className="min-w-0">
-            <p className={`text-sm font-bold ${isEmergency ? 'text-green-800' : 'text-blue-800'}`}>
-              {isEmergency ? 'Enviar por WhatsApp' : 'Enviar por E-mail'}
-            </p>
-            <p className={`text-xs ${isEmergency ? 'text-green-600' : 'text-blue-600'}`}>
-              {isEmergency
-                ? 'Emergência — WhatsApp é mais rápido'
-                : 'Eletiva — envio formal por e-mail'}
-            </p>
-          </div>
+          <p className={`text-sm font-bold ${isEmergency ? 'text-green-800' : 'text-blue-800'}`}>
+            {isEmergency ? 'Enviar por WhatsApp' : 'Enviar por E-mail'}
+          </p>
         </div>
 
-        {/* Actions */}
         <div className="px-5 pb-5 flex flex-col gap-2">
-          {/* Primary: save + send */}
           <button onClick={onConfirm} disabled={saving}
             className="w-full py-3.5 rounded-2xl text-white text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50 transition-all active:scale-[0.97]"
             style={{ background: '#007AFF' }}>
-            {saving
-              ? 'Salvando…'
-              : isEmergency
-                ? <><MessageCircle className="w-4 h-4" /> Salvar e Enviar por WhatsApp</>
-                : <><Mail className="w-4 h-4" /> Salvar e Enviar por E-mail</>}
+            {saving ? 'Salvando…' : isEmergency ? <><MessageCircle className="w-4 h-4" /> Salvar e Enviar por WhatsApp</> : <><Mail className="w-4 h-4" /> Salvar e Enviar por E-mail</>}
           </button>
-          <button onClick={onCancel}
-            className="w-full py-3 rounded-2xl text-sm font-medium transition-colors active:scale-[0.97]"
-            style={{ background: 'rgba(0,0,0,0.05)', color: '#48484A' }}>
+          <button onClick={onCancel} className="w-full py-3 rounded-2xl text-sm font-medium transition-colors active:scale-[0.97]" style={{ background: 'rgba(0,0,0,0.05)', color: '#48484A' }}>
             Voltar e Revisar
           </button>
         </div>
@@ -509,18 +597,9 @@ function SummaryRow({ label, value, highlight }: { label: string; value?: string
   )
 }
 
-type FieldProps = {
-  name: string
-  ref: React.Ref<HTMLInputElement>
-  onChange: React.ChangeEventHandler<HTMLInputElement>
-  onBlur: React.FocusEventHandler<HTMLInputElement>
-}
+type FieldProps = { name: string; ref: React.Ref<HTMLInputElement>; onChange: React.ChangeEventHandler<HTMLInputElement>; onBlur: React.FocusEventHandler<HTMLInputElement> }
 
-/* ── DatePickerField ── */
-function DatePickerField({ label, required, error, min, fieldProps }: {
-  label: string; required?: boolean; error?: string; min?: string
-  fieldProps: FieldProps
-}) {
+function DatePickerField({ label, required, error, min, fieldProps }: { label: string; required?: boolean; error?: string; min?: string; fieldProps: FieldProps }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [displayVal, setDisplayVal] = useState('')
 
@@ -528,21 +607,13 @@ function DatePickerField({ label, required, error, min, fieldProps }: {
     if (!iso) return ''
     const [y, m, d] = iso.split('-')
     const date = new Date(Number(y), Number(m) - 1, Number(d))
-    return date.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })
-      .replace(/\./g, '').replace(',', '')
-  }
-
-  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setDisplayVal(e.target.value)
-    fieldProps.onChange(e)
+    return date.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' }).replace(/\./g, '').replace(',', '')
   }
 
   return (
-    <div
-      className="relative rounded-2xl overflow-hidden cursor-pointer"
+    <div className="relative rounded-2xl overflow-hidden cursor-pointer"
       style={{ background: '#fff', border: error ? '1.5px solid #FF3B30' : '1px solid rgba(0,0,0,0.10)', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}
-      onClick={() => inputRef.current?.showPicker?.()}
-    >
+      onClick={() => inputRef.current?.showPicker?.()}>
       <div className="px-4 pt-3 pb-2.5">
         <div className="flex items-center gap-2 mb-1.5">
           <CalendarDays className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#007AFF' }} />
@@ -550,82 +621,44 @@ function DatePickerField({ label, required, error, min, fieldProps }: {
             {label}{required && <span style={{ color: '#FF3B30' }}> *</span>}
           </span>
         </div>
-        {displayVal ? (
-          <p className="text-sm font-semibold leading-tight" style={{ color: '#1D1D1F' }}>
-            {formatDisplay(displayVal)}
-          </p>
-        ) : (
-          <p className="text-sm" style={{ color: '#AEAEB2' }}>Toque para selecionar</p>
-        )}
+        {displayVal
+          ? <p className="text-sm font-semibold leading-tight" style={{ color: '#1D1D1F' }}>{formatDisplay(displayVal)}</p>
+          : <p className="text-sm" style={{ color: '#AEAEB2' }}>Toque para selecionar</p>}
       </div>
-
-      <input
-        type="date"
-        name={fieldProps.name}
-        ref={(node) => {
-          (inputRef as React.MutableRefObject<HTMLInputElement | null>).current = node
-          if (typeof fieldProps.ref === 'function') fieldProps.ref(node)
-        }}
-        onChange={handleChange}
-        onBlur={fieldProps.onBlur}
-        min={min}
-        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-        style={{ fontSize: 16 }}
-      />
-
+      <input type="date" name={fieldProps.name}
+        ref={node => { (inputRef as React.MutableRefObject<HTMLInputElement | null>).current = node; if (typeof fieldProps.ref === 'function') fieldProps.ref(node) }}
+        onChange={e => { setDisplayVal(e.target.value); fieldProps.onChange(e) }}
+        onBlur={fieldProps.onBlur} min={min}
+        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" style={{ fontSize: 16 }} />
       {error && <p className="px-4 pb-2 text-xs" style={{ color: '#FF3B30' }}>{error}</p>}
     </div>
   )
 }
 
-/* ── TimePickerField ── */
-function TimePickerField({ label = 'Horário', fieldProps }: {
-  label?: string
-  fieldProps: FieldProps
-}) {
+function TimePickerField({ label = 'Horário', fieldProps }: { label?: string; fieldProps: FieldProps }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [val, setVal] = useState('')
-
-  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setVal(e.target.value)
-    fieldProps.onChange(e)
-  }
-
   return (
-    <div
-      className="rounded-2xl overflow-hidden cursor-pointer"
+    <div className="rounded-2xl overflow-hidden cursor-pointer"
       style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.10)', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}
-      onClick={() => inputRef.current?.showPicker?.()}
-    >
+      onClick={() => inputRef.current?.showPicker?.()}>
       <div className="px-4 pt-3 pb-3">
         <div className="flex items-center gap-2 mb-1.5">
           <Clock className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#007AFF' }} />
           <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#8E8E93' }}>{label}</span>
         </div>
-        <p className="text-sm font-semibold" style={{ color: val ? '#1D1D1F' : '#AEAEB2' }}>
-          {val || '--:--'}
-        </p>
+        <p className="text-sm font-semibold" style={{ color: val ? '#1D1D1F' : '#AEAEB2' }}>{val || '--:--'}</p>
       </div>
-
-      <input
-        type="time"
-        name={fieldProps.name}
-        ref={(node) => {
-          (inputRef as React.MutableRefObject<HTMLInputElement | null>).current = node
-          if (typeof fieldProps.ref === 'function') fieldProps.ref(node)
-        }}
-        onChange={handleChange}
+      <input type="time" name={fieldProps.name}
+        ref={node => { (inputRef as React.MutableRefObject<HTMLInputElement | null>).current = node; if (typeof fieldProps.ref === 'function') fieldProps.ref(node) }}
+        onChange={e => { setVal(e.target.value); fieldProps.onChange(e) }}
         onBlur={fieldProps.onBlur}
-        className="absolute opacity-0 pointer-events-none"
-        style={{ fontSize: 16 }}
-      />
+        className="absolute opacity-0 pointer-events-none" style={{ fontSize: 16 }} />
     </div>
   )
 }
 
-function MobileField({ icon, label, required, error, children }: {
-  icon: React.ReactNode; label: string; required?: boolean; error?: string; children: React.ReactNode
-}) {
+function MobileField({ icon, label, required, error, children }: { icon: React.ReactNode; label: string; required?: boolean; error?: string; children: React.ReactNode }) {
   return (
     <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
       <div className="flex items-center gap-2.5 px-4 pt-3 pb-1.5">

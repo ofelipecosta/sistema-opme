@@ -2,7 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, CalendarDays, Users, BarChart2, Stethoscope,
   X, LogOut, Upload, Settings, Tv, Package, ClipboardList,
-  ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen,
+  ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen, BookOpen,
 } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTheme } from '../../contexts/ThemeContext'
@@ -25,9 +25,10 @@ const mainItems = [
 ]
 
 const configSubItems = [
-  { to: '/configuracoes', label: 'Configurações', icon: Settings },
-  { to: '/usuarios',      label: 'Usuários',      icon: Users    },
-  { to: '/importar',      label: 'Importar',      icon: Upload   },
+  { to: '/configuracoes', label: 'Configurações', icon: Settings  },
+  { to: '/cadastros',     label: 'Cadastros',     icon: BookOpen  },
+  { to: '/usuarios',      label: 'Usuários',      icon: Users     },
+  { to: '/importar',      label: 'Importar',      icon: Upload    },
 ]
 
 const CONFIG_PATHS = configSubItems.map(i => i.to)
