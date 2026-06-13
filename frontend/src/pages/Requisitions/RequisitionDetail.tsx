@@ -116,11 +116,7 @@ export default function RequisitionDetail() {
                 <Edit2 className="w-4 h-4" /> Editar
               </button>
             )}
-            <button
-              onClick={() => shareWhatsApp(req)}
-              className="btn-sm bg-green-600 text-white hover:bg-green-700 rounded-lg flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium"
-              title="Enviar via WhatsApp"
-            >
+            <button onClick={() => shareWhatsApp(req)} className="btn-success btn-sm" title="Enviar via WhatsApp">
               <MessageCircle className="w-4 h-4" />
               <span className="hidden sm:inline">WhatsApp</span>
             </button>

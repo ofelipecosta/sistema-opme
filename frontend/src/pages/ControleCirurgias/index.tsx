@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
   Plus, Search, X, Trash2, Edit2, ChevronDown, ClipboardList,
-  Calendar, Building2, Stethoscope, User, AlertCircle, CheckCircle2,
+  Building2, Stethoscope, User, AlertCircle,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuth } from '../../contexts/AuthContext'
+import { useTheme } from '../../contexts/ThemeContext'
 import {
   getControleCirurgias, createControleCirurgia,
   updateControleCirurgia, deleteControleCirurgia,
@@ -13,6 +14,22 @@ import type { ControleCirurgia, SegmentoCirurgia, SituacaoCirurgia, Acompanhamen
 import {
   SEGMENTO_LABELS, SITUACAO_LABELS, ACOMPANHAMENTO_LABELS,
 } from '../../types/controle'
+
+function useT() {
+  const { isDark } = useTheme()
+  return {
+    isDark,
+    card:       isDark ? '#1F2937' : '#ffffff',
+    cardBorder: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)',
+    text1:      isDark ? '#F3F4F6' : '#1D1D1F',
+    text2:      isDark ? '#D1D5DB' : '#48484A',
+    text3:      isDark ? '#9CA3AF' : '#8E8E93',
+    divider:    isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
+    thead:      isDark ? '#111827' : 'rgba(0,0,0,0.02)',
+    inputBg:    isDark ? '#374151' : 'rgba(0,0,0,0.04)',
+    shadow:     isDark ? '0 2px 12px rgba(0,0,0,0.4)' : '0 2px 12px rgba(0,0,0,0.05)',
+  }
+}
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -104,6 +121,7 @@ function CirurgiaModal({
       : emptyForm()
   )
   const [saving, setSaving] = useState(false)
+  const T = useT()
 
   function set(k: keyof typeof form, v: string) {
     setForm(f => ({ ...f, [k]: v }))
@@ -112,128 +130,106 @@ function CirurgiaModal({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!form.cirurgia.trim() || !form.pacienteNome.trim() || !form.data) {
-      toast.error('Preencha Cirurgia, Paciente e Data')
-      return
+      toast.error('Preencha Cirurgia, Paciente e Data'); return
     }
     setSaving(true)
     try { await onSave(form) } finally { setSaving(false) }
   }
 
   const isEdit = !!initial
+  const inp = { background: T.inputBg, border: `1px solid ${T.cardBorder}`, color: T.text1, fontSize: 16 }
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-0 sm:px-4"
-      style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(8px)' }}
+      style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}>
       <div className="w-full sm:max-w-2xl rounded-t-2xl sm:rounded-2xl overflow-hidden"
-        style={{ background: '#fff', boxShadow: '0 24px 60px rgba(0,0,0,0.20)', maxHeight: '92dvh', display: 'flex', flexDirection: 'column' }}>
+        style={{ background: T.card, boxShadow: '0 24px 60px rgba(0,0,0,0.30)', maxHeight: '92dvh', display: 'flex', flexDirection: 'column' }}>
 
-        {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 flex-shrink-0"
-          style={{ borderBottom: '1px solid rgba(0,0,0,0.07)' }}>
+          style={{ borderBottom: `1px solid ${T.divider}` }}>
           <div>
-            <p className="font-bold text-base" style={{ color: '#1D1D1F' }}>
-              {isEdit ? 'Editar Cirurgia' : 'Nova Cirurgia'}
-            </p>
-            <p className="text-xs mt-0.5" style={{ color: '#8E8E93' }}>
-              Controle de Cirurgias
-            </p>
+            <p className="font-bold text-base" style={{ color: T.text1 }}>{isEdit ? 'Editar Cirurgia' : 'Nova Cirurgia'}</p>
+            <p className="text-xs mt-0.5" style={{ color: T.text3 }}>Controle de Cirurgias</p>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center"
-            style={{ background: 'rgba(0,0,0,0.06)', color: '#48484A' }}>
+            style={{ background: T.inputBg, color: T.text2 }}>
             <X size={14} />
           </button>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="overflow-y-auto flex-1">
           <div className="p-5 space-y-4">
-
-            {/* Row: Data + Código */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#48484A' }}>Data *</label>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: T.text2 }}>Data *</label>
                 <input type="date" value={form.data} onChange={e => set('data', e.target.value)}
-                  required className="w-full rounded-xl px-3 py-2.5 text-sm outline-none"
-                  style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.08)', color: '#1D1D1F', fontSize: 16 }} />
+                  required className="w-full rounded-xl px-3 py-2.5 text-sm outline-none" style={inp} />
               </div>
               <div>
-                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#48484A' }}>Cód. V2</label>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: T.text2 }}>Cód. V2</label>
                 <input type="text" value={form.codigoV2} onChange={e => set('codigoV2', e.target.value)}
-                  placeholder="Ex: 385515" className="w-full rounded-xl px-3 py-2.5 text-sm outline-none"
-                  style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.08)', color: '#1D1D1F', fontSize: 16 }} />
+                  placeholder="Ex: 385515" className="w-full rounded-xl px-3 py-2.5 text-sm outline-none" style={inp} />
               </div>
             </div>
 
-            {/* Cirurgia */}
             <div>
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#48484A' }}>Cirurgia / Procedimento *</label>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: T.text2 }}>Cirurgia / Procedimento *</label>
               <input type="text" value={form.cirurgia} onChange={e => set('cirurgia', e.target.value.toUpperCase())}
                 placeholder="Ex: FRATURA DE FÊMUR" required
-                className="w-full rounded-xl px-3 py-2.5 text-sm outline-none uppercase"
-                style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.08)', color: '#1D1D1F', fontSize: 16 }} />
+                className="w-full rounded-xl px-3 py-2.5 text-sm outline-none uppercase" style={inp} />
             </div>
 
-            {/* Segmento */}
             <div>
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#48484A' }}>Segmento *</label>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: T.text2 }}>Segmento *</label>
               <div className="flex gap-2 flex-wrap">
                 {SEGMENTOS.map(s => (
                   <button key={s} type="button" onClick={() => set('segmento', s)}
                     className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
                     style={form.segmento === s
                       ? { background: segmentoColor(s), color: '#fff' }
-                      : { background: `${segmentoColor(s)}15`, color: segmentoColor(s), border: `1px solid ${segmentoColor(s)}30` }}>
+                      : { background: `${segmentoColor(s)}18`, color: segmentoColor(s), border: `1px solid ${segmentoColor(s)}35` }}>
                     {SEGMENTO_LABELS[s]}
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Paciente */}
             <div>
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#48484A' }}>Nome do Paciente *</label>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: T.text2 }}>Nome do Paciente *</label>
               <input type="text" value={form.pacienteNome} onChange={e => set('pacienteNome', e.target.value.toUpperCase())}
                 placeholder="NOME COMPLETO DO PACIENTE" required
-                className="w-full rounded-xl px-3 py-2.5 text-sm outline-none uppercase"
-                style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.08)', color: '#1D1D1F', fontSize: 16 }} />
+                className="w-full rounded-xl px-3 py-2.5 text-sm outline-none uppercase" style={inp} />
             </div>
 
-            {/* Row: Convênio + Hospital */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#48484A' }}>Convênio</label>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: T.text2 }}>Convênio</label>
                 <input type="text" value={form.convenio} onChange={e => set('convenio', e.target.value.toUpperCase())}
-                  placeholder="Ex: UNIMED" className="w-full rounded-xl px-3 py-2.5 text-sm outline-none uppercase"
-                  style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.08)', color: '#1D1D1F', fontSize: 16 }} />
+                  placeholder="Ex: UNIMED" className="w-full rounded-xl px-3 py-2.5 text-sm outline-none uppercase" style={inp} />
               </div>
               <div>
-                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#48484A' }}>Hospital</label>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: T.text2 }}>Hospital</label>
                 <input type="text" value={form.hospital} onChange={e => set('hospital', e.target.value.toUpperCase())}
-                  placeholder="Ex: NITERÓI DOR" className="w-full rounded-xl px-3 py-2.5 text-sm outline-none uppercase"
-                  style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.08)', color: '#1D1D1F', fontSize: 16 }} />
+                  placeholder="Ex: NITERÓI DOR" className="w-full rounded-xl px-3 py-2.5 text-sm outline-none uppercase" style={inp} />
               </div>
             </div>
 
-            {/* Row: Médico + Vendedor */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#48484A' }}>Médico</label>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: T.text2 }}>Médico</label>
                 <input type="text" value={form.medico} onChange={e => set('medico', e.target.value.toUpperCase())}
-                  placeholder="NOME DO MÉDICO" className="w-full rounded-xl px-3 py-2.5 text-sm outline-none uppercase"
-                  style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.08)', color: '#1D1D1F', fontSize: 16 }} />
+                  placeholder="NOME DO MÉDICO" className="w-full rounded-xl px-3 py-2.5 text-sm outline-none uppercase" style={inp} />
               </div>
               <div>
-                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#48484A' }}>Vendedor</label>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: T.text2 }}>Vendedor</label>
                 <input type="text" value={form.vendedor} onChange={e => set('vendedor', e.target.value.toUpperCase())}
-                  placeholder="NOME DO VENDEDOR" className="w-full rounded-xl px-3 py-2.5 text-sm outline-none uppercase"
-                  style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.08)', color: '#1D1D1F', fontSize: 16 }} />
+                  placeholder="NOME DO VENDEDOR" className="w-full rounded-xl px-3 py-2.5 text-sm outline-none uppercase" style={inp} />
               </div>
             </div>
 
-            {/* Situação */}
             <div>
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#48484A' }}>Situação *</label>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: T.text2 }}>Situação *</label>
               <div className="flex gap-2 flex-wrap">
                 {SITUACOES.map(s => {
                   const st = situacaoStyle(s)
@@ -250,43 +246,30 @@ function CirurgiaModal({
               </div>
             </div>
 
-            {/* Acompanhamento */}
             <div>
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#48484A' }}>Acompanhamento *</label>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: T.text2 }}>Acompanhamento *</label>
               <div className="relative">
                 <select value={form.acompanhamento} onChange={e => set('acompanhamento', e.target.value)}
-                  className="w-full rounded-xl px-3 py-2.5 text-sm outline-none appearance-none"
-                  style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.08)', color: '#1D1D1F', fontSize: 16 }}>
-                  {ACOMPANHAMENTOS.map(a => (
-                    <option key={a} value={a}>{ACOMPANHAMENTO_LABELS[a]}</option>
-                  ))}
+                  className="w-full rounded-xl px-3 py-2.5 text-sm outline-none appearance-none" style={inp}>
+                  {ACOMPANHAMENTOS.map(a => <option key={a} value={a}>{ACOMPANHAMENTO_LABELS[a]}</option>)}
                 </select>
-                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: '#8E8E93' }} />
+                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: T.text3 }} />
               </div>
             </div>
 
-            {/* Observação */}
             <div>
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#48484A' }}>Observação</label>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: T.text2 }}>Observação</label>
               <textarea value={form.observacao} onChange={e => set('observacao', e.target.value)}
                 rows={2} placeholder="Informações adicionais..."
-                className="w-full rounded-xl px-3 py-2.5 text-sm outline-none resize-none"
-                style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.08)', color: '#1D1D1F', fontSize: 16 }} />
+                className="w-full rounded-xl px-3 py-2.5 text-sm outline-none resize-none" style={inp} />
             </div>
           </div>
         </form>
 
-        {/* Footer */}
         <div className="flex gap-3 justify-end px-5 py-4 flex-shrink-0"
-          style={{ borderTop: '1px solid rgba(0,0,0,0.07)' }}>
-          <button type="button" onClick={onClose}
-            className="px-4 py-2.5 rounded-xl text-sm font-medium"
-            style={{ background: 'rgba(0,0,0,0.05)', color: '#48484A' }}>
-            Cancelar
-          </button>
-          <button onClick={handleSubmit as any} disabled={saving}
-            className="px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2"
-            style={{ background: 'linear-gradient(135deg,#7a1010,#c02020)', color: '#fff', opacity: saving ? 0.7 : 1 }}>
+          style={{ borderTop: `1px solid ${T.divider}` }}>
+          <button type="button" onClick={onClose} className="btn-secondary">Cancelar</button>
+          <button onClick={handleSubmit as any} disabled={saving} className="btn-primary">
             {saving ? '…' : isEdit ? 'Salvar alterações' : 'Adicionar cirurgia'}
           </button>
         </div>
@@ -299,6 +282,7 @@ function CirurgiaModal({
 
 export default function ControleCirurgias() {
   const { user } = useAuth()
+  const T = useT()
   const [items, setItems] = useState<ControleCirurgia[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -388,7 +372,7 @@ export default function ControleCirurgias() {
 
   if (loading) return (
     <div className="flex items-center justify-center py-20">
-      <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: '#c02020', borderTopColor: 'transparent' }} />
+      <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: '#007AFF', borderTopColor: 'transparent' }} />
     </div>
   )
 
@@ -396,13 +380,13 @@ export default function ControleCirurgias() {
     <div className="max-w-2xl mx-auto py-16 px-4">
       <div className="rounded-2xl p-8 text-center" style={{ background: 'rgba(255,149,0,0.06)', border: '1px solid rgba(255,149,0,0.2)' }}>
         <AlertCircle size={40} className="mx-auto mb-4" style={{ color: '#FF9500' }} />
-        <h2 className="font-bold text-lg mb-2" style={{ color: '#1D1D1F' }}>Configure o banco de dados</h2>
-        <p className="text-sm mb-5" style={{ color: '#48484A' }}>
+        <h2 className="font-bold text-lg mb-2" style={{ color: T.text1 }}>Configure o banco de dados</h2>
+        <p className="text-sm mb-5" style={{ color: T.text2 }}>
           Para ativar o Controle de Cirurgias, execute o SQL abaixo no painel do Supabase
           (<strong>SQL Editor → New query</strong>):
         </p>
         <pre className="text-left text-xs rounded-xl p-4 overflow-x-auto mb-5"
-          style={{ background: 'rgba(0,0,0,0.05)', color: '#1D1D1F', lineHeight: 1.6 }}>
+          style={{ background: T.inputBg, color: T.text1, lineHeight: 1.6 }}>
 {`CREATE TABLE controle_cirurgias (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   numero text,
@@ -426,17 +410,13 @@ export default function ControleCirurgias() {
 ALTER TABLE controle_cirurgias ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "allow_all" ON controle_cirurgias FOR ALL USING (true);`}
         </pre>
-        <button onClick={load}
-          className="px-5 py-2.5 rounded-xl text-sm font-semibold"
-          style={{ background: 'linear-gradient(135deg,#7a1010,#c02020)', color: '#fff' }}>
-          Tentar novamente
-        </button>
+        <button onClick={load} className="btn-primary">Tentar novamente</button>
       </div>
     </div>
   )
 
   return (
-    <div className="space-y-5 max-w-7xl">
+    <div className="space-y-2">
       {/* Modal */}
       {showModal && (
         <CirurgiaModal
@@ -446,60 +426,52 @@ CREATE POLICY "allow_all" ON controle_cirurgias FOR ALL USING (true);`}
         />
       )}
 
-      {/* ── Header ── */}
-      <div className="flex items-start justify-between gap-3 flex-wrap">
-        <div>
-          <h2 className="text-xl font-bold tracking-tight" style={{ color: '#1D1D1F' }}>Controle de Cirurgias</h2>
-          <p className="text-sm mt-0.5" style={{ color: '#8E8E93' }}>
-            {filtered.length} registro{filtered.length !== 1 ? 's' : ''} · {MESES[filterMes]} {filterAno}
-          </p>
-        </div>
-        <button onClick={openNew}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold"
-          style={{ background: 'linear-gradient(135deg,#7a1010,#c02020)', color: '#fff', boxShadow: '0 2px 10px rgba(122,16,16,0.35)' }}>
-          <Plus size={15} /> Nova Cirurgia
-        </button>
-      </div>
-
-      {/* ── Navegação de mês/ano ── */}
+      {/* ── Header + mês/ano numa linha só ── */}
       <div className="flex items-center gap-2 flex-wrap">
+        <h2 className="text-base font-bold tracking-tight mr-1" style={{ color: T.text1 }}>Controle de Cirurgias</h2>
+        <span className="text-xs font-medium" style={{ color: T.text3 }}>
+          {filtered.length} reg · {MESES[filterMes]} {filterAno}
+        </span>
         <select value={filterAno} onChange={e => setFilterAno(Number(e.target.value))}
-          className="rounded-xl px-3 py-2 text-sm font-semibold outline-none"
-          style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.08)', color: '#1D1D1F' }}>
+          className="rounded-lg px-2 py-1 text-xs font-semibold outline-none ml-1"
+          style={{ background: T.inputBg, border: `1px solid ${T.cardBorder}`, color: T.text1 }}>
           {anos.map(a => <option key={a} value={a}>{a}</option>)}
         </select>
-        <div className="flex gap-1 flex-wrap">
+        <div className="flex gap-1.5 flex-wrap flex-1">
           {MESES.map((m, i) => (
             <button key={i} onClick={() => setFilterMes(i)}
-              className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
+              className="px-3 py-1.5 rounded-full text-sm font-semibold transition-all"
               style={filterMes === i
-                ? { background: 'linear-gradient(135deg,#7a1010,#c02020)', color: '#fff' }
-                : { background: 'rgba(0,0,0,0.04)', color: '#48484A' }}>
+                ? { background: '#007AFF', color: '#fff' }
+                : { background: T.inputBg, color: T.text2, border: `1px solid ${T.cardBorder}` }}>
               {m.slice(0, 3)}
             </button>
           ))}
         </div>
+        <button onClick={openNew} className="btn-primary ml-auto">
+          <Plus size={15} /> Nova Cirurgia
+        </button>
       </div>
 
       {/* ── KPI strip ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <div className="col-span-2 sm:col-span-1 rounded-2xl p-4 text-center"
-          style={{ background: 'rgba(122,16,16,0.07)', border: '1px solid rgba(122,16,16,0.15)' }}>
-          <p className="text-2xl font-bold" style={{ color: '#c02020' }}>{totalMes.length}</p>
-          <p className="text-xs font-medium mt-0.5" style={{ color: '#c02020' }}>Total</p>
+      <div className="flex gap-3 flex-wrap">
+        <div className="rounded-2xl px-5 py-3 flex items-center gap-3"
+          style={{ background: 'rgba(255,59,48,0.10)', border: '1px solid rgba(255,59,48,0.2)' }}>
+          <p className="text-3xl font-bold leading-none" style={{ color: '#FF3B30' }}>{totalMes.length}</p>
+          <p className="text-sm font-semibold" style={{ color: '#FF3B30' }}>Total</p>
         </div>
         {bySegmento.map(({ s, count }) => (
-          <div key={s} className="rounded-2xl p-4 text-center"
-            style={{ background: `${segmentoColor(s)}0f`, border: `1px solid ${segmentoColor(s)}25` }}>
-            <p className="text-2xl font-bold" style={{ color: segmentoColor(s) }}>{count}</p>
-            <p className="text-xs font-medium mt-0.5" style={{ color: segmentoColor(s) }}>{SEGMENTO_LABELS[s]}</p>
+          <div key={s} className="rounded-2xl px-5 py-3 flex items-center gap-3"
+            style={{ background: `${segmentoColor(s)}12`, border: `1px solid ${segmentoColor(s)}28` }}>
+            <p className="text-3xl font-bold leading-none" style={{ color: segmentoColor(s) }}>{count}</p>
+            <p className="text-sm font-semibold" style={{ color: segmentoColor(s) }}>{SEGMENTO_LABELS[s]}</p>
           </div>
         ))}
         {canceladas > 0 && (
-          <div className="rounded-2xl p-4 text-center"
-            style={{ background: 'rgba(255,59,48,0.07)', border: '1px solid rgba(255,59,48,0.2)' }}>
-            <p className="text-2xl font-bold" style={{ color: '#FF3B30' }}>{canceladas}</p>
-            <p className="text-xs font-medium mt-0.5" style={{ color: '#FF3B30' }}>Canceladas</p>
+          <div className="rounded-2xl px-5 py-3 flex items-center gap-3"
+            style={{ background: 'rgba(255,59,48,0.10)', border: '1px solid rgba(255,59,48,0.2)' }}>
+            <p className="text-3xl font-bold leading-none" style={{ color: '#FF3B30' }}>{canceladas}</p>
+            <p className="text-sm font-semibold" style={{ color: '#FF3B30' }}>Canceladas</p>
           </div>
         )}
       </div>
@@ -507,34 +479,26 @@ CREATE POLICY "allow_all" ON controle_cirurgias FOR ALL USING (true);`}
       {/* ── Filters ── */}
       <div className="flex flex-wrap gap-2">
         <div className="flex items-center gap-2 flex-1 min-w-52 rounded-xl px-3 py-2.5"
-          style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.08)' }}>
-          <Search size={14} style={{ color: '#8E8E93', flexShrink: 0 }} />
+          style={{ background: T.card, border: `1px solid ${T.cardBorder}` }}>
+          <Search size={14} style={{ color: T.text3, flexShrink: 0 }} />
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Buscar paciente, cirurgia, médico..."
-            className="flex-1 bg-transparent text-sm outline-none" style={{ color: '#1D1D1F' }} />
-          {search && <button onClick={() => setSearch('')}><X size={13} style={{ color: '#8E8E93' }} /></button>}
+            className="flex-1 bg-transparent text-sm outline-none" style={{ color: T.text1 }} />
+          {search && <button onClick={() => setSearch('')}><X size={13} style={{ color: T.text3 }} /></button>}
         </div>
 
-        <select value={filterSegmento} onChange={e => setFilterSegmento(e.target.value as any)}
-          className="rounded-xl px-3 py-2.5 text-sm outline-none"
-          style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.08)', color: filterSegmento ? '#1D1D1F' : '#8E8E93' }}>
-          <option value="">Segmento</option>
-          {SEGMENTOS.map(s => <option key={s} value={s}>{SEGMENTO_LABELS[s]}</option>)}
-        </select>
-
-        <select value={filterSituacao} onChange={e => setFilterSituacao(e.target.value as any)}
-          className="rounded-xl px-3 py-2.5 text-sm outline-none"
-          style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.08)', color: filterSituacao ? '#1D1D1F' : '#8E8E93' }}>
-          <option value="">Situação</option>
-          {SITUACOES.map(s => <option key={s} value={s}>{SITUACAO_LABELS[s]}</option>)}
-        </select>
-
-        <select value={filterAcomp} onChange={e => setFilterAcomp(e.target.value as any)}
-          className="rounded-xl px-3 py-2.5 text-sm outline-none"
-          style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.08)', color: filterAcomp ? '#1D1D1F' : '#8E8E93' }}>
-          <option value="">Acompanhamento</option>
-          {ACOMPANHAMENTOS.map(a => <option key={a} value={a}>{ACOMPANHAMENTO_LABELS[a]}</option>)}
-        </select>
+        {[
+          { val: filterSegmento, set: setFilterSegmento, opts: SEGMENTOS.map(s => ({ v: s, l: SEGMENTO_LABELS[s] })), placeholder: 'Segmento' },
+          { val: filterSituacao, set: setFilterSituacao, opts: SITUACOES.map(s => ({ v: s, l: SITUACAO_LABELS[s] })), placeholder: 'Situação' },
+          { val: filterAcomp,   set: setFilterAcomp,    opts: ACOMPANHAMENTOS.map(a => ({ v: a, l: ACOMPANHAMENTO_LABELS[a] })), placeholder: 'Acompanhamento' },
+        ].map(({ val, set: setter, opts, placeholder }) => (
+          <select key={placeholder} value={val} onChange={e => setter(e.target.value as any)}
+            className="rounded-xl px-3 py-2.5 text-sm outline-none"
+            style={{ background: T.card, border: `1px solid ${T.cardBorder}`, color: val ? T.text1 : T.text3 }}>
+            <option value="">{placeholder}</option>
+            {opts.map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
+          </select>
+        ))}
 
         {(filterSegmento || filterSituacao || filterAcomp || search) && (
           <button onClick={() => { setFilterSegmento(''); setFilterSituacao(''); setFilterAcomp(''); setSearch('') }}
@@ -548,10 +512,10 @@ CREATE POLICY "allow_all" ON controle_cirurgias FOR ALL USING (true);`}
       {/* ── Table (desktop) ── */}
       {filtered.length === 0 ? (
         <div className="py-16 text-center rounded-2xl"
-          style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.06)' }}>
-          <ClipboardList size={36} className="mx-auto mb-3" style={{ color: '#D1D1D6' }} />
-          <p className="font-semibold" style={{ color: '#48484A' }}>Nenhum registro encontrado</p>
-          <p className="text-sm mt-1" style={{ color: '#8E8E93' }}>
+          style={{ background: T.card, border: `1px solid ${T.cardBorder}` }}>
+          <ClipboardList size={36} className="mx-auto mb-3" style={{ color: T.text3 }} />
+          <p className="font-semibold" style={{ color: T.text2 }}>Nenhum registro encontrado</p>
+          <p className="text-sm mt-1" style={{ color: T.text3 }}>
             {search || filterSegmento || filterSituacao || filterAcomp
               ? 'Ajuste os filtros ou adicione um novo registro pelo botão acima.'
               : 'Nenhuma cirurgia cadastrada em ' + MESES[filterMes] + '.'}
@@ -559,42 +523,39 @@ CREATE POLICY "allow_all" ON controle_cirurgias FOR ALL USING (true);`}
         </div>
       ) : (
         <>
-          {/* Desktop table */}
           <div className="hidden md:block rounded-2xl overflow-hidden"
-            style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.07)', boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
+            style={{ background: T.card, border: `1px solid ${T.cardBorder}`, boxShadow: T.shadow }}>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr style={{ background: 'rgba(0,0,0,0.02)', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-                    {['Data','Cód.','Cirurgia','Segmento','Paciente','Convênio','Hospital','Médico','Vendedor','Situação','Acomp.',''].map(h => (
-                      <th key={h} className="text-left px-3 py-3 text-xs font-semibold uppercase tracking-wider whitespace-nowrap"
-                        style={{ color: '#8E8E93' }}>{h}</th>
+                  <tr style={{ background: T.thead, borderBottom: `1px solid ${T.divider}` }}>
+                    {['Cód. V2','Data','Cirurgia','Segmento','Nome','Convênio','Hospital','Médico','Vendedor','Situação','Acomp.',''].map(h => (
+                      <th key={h} className="text-left px-3 py-3 text-xs font-bold uppercase tracking-wider whitespace-nowrap"
+                        style={{ color: T.text3 }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((it, idx) => {
+                  {filtered.map(it => {
                     const st = situacaoStyle(it.situacao)
                     const ac = acompStyle(it.acompanhamento)
                     const isCancelada = it.acompanhamento === 'cancelada'
                     return (
-                      <tr key={it.id}
-                        className="hover:bg-black/[0.015] transition-colors"
-                        style={{ borderBottom: '1px solid rgba(0,0,0,0.04)', opacity: isCancelada ? 0.55 : 1 }}>
-                        <td className="px-3 py-3 font-mono text-xs whitespace-nowrap" style={{ color: '#8E8E93' }}>{fmtDate(it.data)}</td>
-                        <td className="px-3 py-3 font-mono text-xs" style={{ color: '#8E8E93' }}>{it.codigoV2 || '—'}</td>
-                        <td className="px-3 py-3 max-w-[160px] truncate font-medium" style={{ color: '#1D1D1F' }} title={it.cirurgia}>{it.cirurgia}</td>
-                        <td className="px-3 py-3">
+                      <tr key={it.id} style={{ borderBottom: `1px solid ${T.divider}`, opacity: isCancelada ? 0.55 : 1 }}>
+                        <td className="px-2 py-2 font-mono text-xs whitespace-nowrap" style={{ color: T.text3 }}>{it.codigoV2 || '—'}</td>
+                        <td className="px-2 py-2 font-mono text-xs whitespace-nowrap" style={{ color: T.text3 }}>{fmtDate(it.data)}</td>
+                        <td className="px-2 py-2 min-w-[130px] font-semibold text-xs" style={{ color: T.text1 }}>{it.cirurgia}</td>
+                        <td className="px-2 py-2 whitespace-nowrap">
                           <span className="px-2 py-0.5 rounded-full text-xs font-semibold"
-                            style={{ background: `${segmentoColor(it.segmento)}15`, color: segmentoColor(it.segmento) }}>
+                            style={{ background: `${segmentoColor(it.segmento)}18`, color: segmentoColor(it.segmento) }}>
                             {SEGMENTO_LABELS[it.segmento]}
                           </span>
                         </td>
-                        <td className="px-3 py-3 max-w-[150px] truncate font-medium" style={{ color: '#1D1D1F' }} title={it.pacienteNome}>{it.pacienteNome}</td>
-                        <td className="px-3 py-3 max-w-[110px] truncate text-xs" style={{ color: '#48484A' }}>{it.convenio || '—'}</td>
-                        <td className="px-3 py-3 max-w-[120px] truncate text-xs" style={{ color: '#48484A' }}>{it.hospital || '—'}</td>
-                        <td className="px-3 py-3 max-w-[110px] truncate text-xs" style={{ color: '#48484A' }}>{it.medico || '—'}</td>
-                        <td className="px-3 py-3 max-w-[100px] truncate text-xs" style={{ color: '#48484A' }}>{it.vendedor || '—'}</td>
+                        <td className="px-2 py-2 min-w-[130px] font-semibold text-xs" style={{ color: T.text1 }}>{it.pacienteNome}</td>
+                        <td className="px-2 py-2 min-w-[90px] text-xs" style={{ color: T.text2 }}>{it.convenio || '—'}</td>
+                        <td className="px-2 py-2 min-w-[100px] text-xs" style={{ color: T.text2 }}>{it.hospital || '—'}</td>
+                        <td className="px-2 py-2 min-w-[100px] text-xs" style={{ color: T.text2 }}>{it.medico || '—'}</td>
+                        <td className="px-2 py-2 min-w-[80px] text-xs" style={{ color: T.text2 }}>{it.vendedor || '—'}</td>
                         <td className="px-3 py-3">
                           <span className="px-2 py-0.5 rounded-full text-xs font-semibold"
                             style={{ background: st.bg, color: st.color, border: `1px solid ${st.border}` }}>
@@ -609,16 +570,14 @@ CREATE POLICY "allow_all" ON controle_cirurgias FOR ALL USING (true);`}
                         </td>
                         <td className="px-3 py-3 whitespace-nowrap">
                           <div className="flex items-center gap-1">
-                            <button onClick={() => openEdit(it)}
-                              className="p-1.5 rounded-lg transition-colors"
-                              style={{ color: '#8E8E93' }}
+                            <button onClick={() => openEdit(it)} className="p-1.5 rounded-lg transition-colors"
+                              style={{ color: T.text3 }}
                               onMouseEnter={e => (e.currentTarget.style.color = '#007AFF')}
-                              onMouseLeave={e => (e.currentTarget.style.color = '#8E8E93')}>
+                              onMouseLeave={e => (e.currentTarget.style.color = T.text3)}>
                               <Edit2 size={14} />
                             </button>
-                            <button onClick={() => handleDelete(it)}
-                              className="p-1.5 rounded-lg"
-                              style={{ background: 'rgba(255,59,48,0.07)', color: '#FF3B30' }}>
+                            <button onClick={() => handleDelete(it)} className="p-1.5 rounded-lg"
+                              style={{ background: 'rgba(255,59,48,0.08)', color: '#FF3B30' }}>
                               <Trash2 size={14} />
                             </button>
                           </div>
@@ -638,52 +597,42 @@ CREATE POLICY "allow_all" ON controle_cirurgias FOR ALL USING (true);`}
               const ac = acompStyle(it.acompanhamento)
               const isCancelada = it.acompanhamento === 'cancelada'
               return (
-                <div key={it.id}
-                  style={{
-                    background: '#fff',
-                    border: `1.5px solid ${segmentoColor(it.segmento)}30`,
-                    borderLeft: `4px solid ${segmentoColor(it.segmento)}`,
-                    borderRadius: 14,
-                    padding: '12px 14px',
-                    opacity: isCancelada ? 0.6 : 1,
-                  }}>
-                  {/* Row 1: data + badges */}
+                <div key={it.id} style={{
+                  background: T.card,
+                  border: `1px solid ${T.cardBorder}`,
+                  borderLeft: `4px solid ${segmentoColor(it.segmento)}`,
+                  borderRadius: 14, padding: '12px 14px', opacity: isCancelada ? 0.6 : 1,
+                }}>
                   <div className="flex items-center gap-2 flex-wrap mb-1.5">
-                    <span className="text-xs font-mono font-medium" style={{ color: '#8E8E93' }}>{fmtDate(it.data)}</span>
-                    {it.codigoV2 && <span className="text-xs font-mono" style={{ color: '#8E8E93' }}>{it.codigoV2}</span>}
+                    <span className="text-xs font-mono font-medium" style={{ color: T.text3 }}>{fmtDate(it.data)}</span>
+                    {it.codigoV2 && <span className="text-xs font-mono" style={{ color: T.text3 }}>{it.codigoV2}</span>}
                     <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                      style={{ background: `${segmentoColor(it.segmento)}15`, color: segmentoColor(it.segmento) }}>
+                      style={{ background: `${segmentoColor(it.segmento)}18`, color: segmentoColor(it.segmento) }}>
                       {SEGMENTO_LABELS[it.segmento]}
                     </span>
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                      style={{ background: st.bg, color: st.color }}>
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: st.bg, color: st.color }}>
                       {SITUACAO_LABELS[it.situacao]}
                     </span>
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                      style={{ background: ac.bg, color: ac.color }}>
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: ac.bg, color: ac.color }}>
                       {ACOMPANHAMENTO_LABELS[it.acompanhamento]}
                     </span>
                   </div>
-                  {/* Row 2: cirurgia + paciente */}
-                  <p className="font-bold text-sm" style={{ color: '#1D1D1F' }}>{it.cirurgia}</p>
-                  <p className="text-sm font-medium mt-0.5" style={{ color: '#48484A' }}>{it.pacienteNome}</p>
-                  {/* Row 3: info chips */}
+                  <p className="font-bold text-sm" style={{ color: T.text1 }}>{it.cirurgia}</p>
+                  <p className="text-sm font-medium mt-0.5" style={{ color: T.text2 }}>{it.pacienteNome}</p>
                   <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2">
-                    {it.hospital && <span className="flex items-center gap-1 text-xs" style={{ color: '#8E8E93' }}><Building2 size={11} />{it.hospital}</span>}
-                    {it.medico   && <span className="flex items-center gap-1 text-xs" style={{ color: '#8E8E93' }}><Stethoscope size={11} />{it.medico}</span>}
-                    {it.vendedor && <span className="flex items-center gap-1 text-xs" style={{ color: '#8E8E93' }}><User size={11} />{it.vendedor}</span>}
-                    {it.convenio && <span className="text-xs" style={{ color: '#8E8E93' }}>{it.convenio}</span>}
+                    {it.hospital && <span className="flex items-center gap-1 text-xs" style={{ color: T.text3 }}><Building2 size={11} />{it.hospital}</span>}
+                    {it.medico   && <span className="flex items-center gap-1 text-xs" style={{ color: T.text3 }}><Stethoscope size={11} />{it.medico}</span>}
+                    {it.vendedor && <span className="flex items-center gap-1 text-xs" style={{ color: T.text3 }}><User size={11} />{it.vendedor}</span>}
+                    {it.convenio && <span className="text-xs" style={{ color: T.text3 }}>{it.convenio}</span>}
                   </div>
-                  {/* Actions */}
                   <div className="flex gap-2 mt-3">
                     <button onClick={() => openEdit(it)}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium flex-1 justify-center"
-                      style={{ background: 'rgba(0,0,0,0.04)', color: '#48484A' }}>
+                      style={{ background: T.inputBg, color: T.text2 }}>
                       <Edit2 size={13} /> Editar
                     </button>
-                    <button onClick={() => handleDelete(it)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium"
-                      style={{ background: 'rgba(255,59,48,0.07)', color: '#FF3B30' }}>
+                    <button onClick={() => handleDelete(it)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium"
+                      style={{ background: 'rgba(255,59,48,0.08)', color: '#FF3B30' }}>
                       <Trash2 size={13} />
                     </button>
                   </div>
@@ -694,9 +643,8 @@ CREATE POLICY "allow_all" ON controle_cirurgias FOR ALL USING (true);`}
         </>
       )}
 
-      {/* Rodapé info */}
       {filtered.length > 0 && (
-        <p className="text-xs pb-8 text-right" style={{ color: '#C7C7CC' }}>
+        <p className="text-xs pb-8 text-right" style={{ color: T.text3 }}>
           {filtered.length} de {totalMes.length} registros em {MESES[filterMes]} {filterAno}
         </p>
       )}

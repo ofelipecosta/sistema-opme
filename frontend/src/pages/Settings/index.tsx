@@ -80,7 +80,7 @@ export default function SettingsPage() {
         </div>
         <div className="flex gap-2">
           <button onClick={handleReset} className="btn-secondary btn-sm">Restaurar padrão</button>
-          <button onClick={handleSave} className={`btn-sm flex items-center gap-1.5 px-4 py-2 rounded-xl font-semibold text-sm transition-all ${saved ? 'bg-teal-600 text-white' : 'btn-primary'}`}>
+          <button onClick={handleSave} className={`btn-sm flex items-center gap-1.5 px-4 py-2 rounded-xl font-semibold text-sm transition-all ${saved ? 'btn-success' : 'btn-primary'}`}>
             {saved ? <><CheckCircle2 className="w-4 h-4" /> Salvo</> : <><Save className="w-4 h-4" /> Salvar</>}
           </button>
         </div>
@@ -265,7 +265,7 @@ export default function SettingsPage() {
 
       {/* Footer save */}
       <div className="flex justify-end pb-8">
-        <button onClick={handleSave} className={`btn-sm flex items-center gap-1.5 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all ${saved ? 'bg-teal-600 text-white' : 'btn-primary'}`}>
+        <button onClick={handleSave} className={`btn-sm flex items-center gap-1.5 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all ${saved ? 'btn-success' : 'btn-primary'}`}>
           {saved ? <><CheckCircle2 className="w-4 h-4" /> Configurações salvas</> : <><Save className="w-4 h-4" /> Salvar configurações</>}
         </button>
       </div>

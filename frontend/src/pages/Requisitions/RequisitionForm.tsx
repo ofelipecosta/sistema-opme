@@ -300,8 +300,8 @@ export default function RequisitionForm() {
           type="button"
           onClick={() => handleSendClick('default')}
           disabled={saving}
-          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-bold transition-all active:scale-95 disabled:opacity-50 text-white shadow-md"
-          style={{ background: isEmergency ? '#ef4444' : 'linear-gradient(135deg,#7a1010,#c02020)' }}
+          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-bold transition-all active:scale-[0.97] disabled:opacity-50 text-white shadow-md"
+          style={{ background: isEmergency ? '#FF3B30' : '#007AFF' }}
         >
           <CalendarDays className="w-4 h-4" />
           {saving ? 'Salvando…' : 'Agendar'}
@@ -361,16 +361,16 @@ function SuccessModal({ req, onShare, onClose }: {
         <div className="px-6 pb-6 pt-3 flex flex-col gap-2">
           <button
             onClick={() => { onShare(); onClose() }}
-            className={`w-full py-3.5 rounded-2xl text-white text-sm font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition-all ${
-              isEmergency ? 'bg-green-500 hover:bg-green-600' : 'bg-blue-500 hover:bg-blue-600'
-            }`}
+            className="w-full py-3.5 rounded-2xl text-white text-sm font-bold flex items-center justify-center gap-2 active:scale-[0.97] transition-all"
+            style={{ background: '#007AFF' }}
           >
             {isEmergency ? <MessageCircle className="w-4 h-4" /> : <Mail className="w-4 h-4" />}
             {isEmergency ? 'Enviar por WhatsApp' : 'Enviar por E-mail'}
           </button>
           <button
             onClick={onClose}
-            className="w-full py-3 rounded-2xl bg-slate-100 text-slate-500 text-sm font-medium hover:bg-slate-200 transition-colors"
+            className="w-full py-3 rounded-2xl text-sm font-medium transition-colors active:scale-[0.97]"
+            style={{ background: 'rgba(0,0,0,0.05)', color: '#48484A' }}
           >
             Ver agendamento
           </button>
@@ -480,18 +480,17 @@ function SummaryModal({ data, convenioOutros, isEmergency, channel, onConfirm, o
         <div className="px-5 pb-5 flex flex-col gap-2">
           {/* Primary: save + send */}
           <button onClick={onConfirm} disabled={saving}
-            className={`w-full py-3.5 rounded-2xl text-white text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50 transition-all active:scale-[0.98] ${
-              isEmergency ? 'bg-green-500 hover:bg-green-600' : 'bg-blue-500 hover:bg-blue-600'
-            }`}>
+            className="w-full py-3.5 rounded-2xl text-white text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50 transition-all active:scale-[0.97]"
+            style={{ background: '#007AFF' }}>
             {saving
               ? 'Salvando…'
               : isEmergency
                 ? <><MessageCircle className="w-4 h-4" /> Salvar e Enviar por WhatsApp</>
                 : <><Mail className="w-4 h-4" /> Salvar e Enviar por E-mail</>}
           </button>
-          {/* Secondary: back */}
           <button onClick={onCancel}
-            className="w-full py-3 rounded-2xl bg-slate-100 text-slate-500 text-sm font-medium transition-colors hover:bg-slate-200">
+            className="w-full py-3 rounded-2xl text-sm font-medium transition-colors active:scale-[0.97]"
+            style={{ background: 'rgba(0,0,0,0.05)', color: '#48484A' }}>
             Voltar e Revisar
           </button>
         </div>

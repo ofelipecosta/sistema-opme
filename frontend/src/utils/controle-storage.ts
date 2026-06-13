@@ -108,23 +108,83 @@ export async function countControleCirurgias(): Promise<number> {
   return count ?? 0
 }
 
+export interface UpsertControleResult {
+  added: number
+  updated: number
+  details: { acao: 'adicionado' | 'atualizado'; identificador: string; campos?: string[] }[]
+}
+
+export async function bulkUpsertControleCirurgias(
+  items: Omit<ControleCirurgia, 'id' | 'createdAt' | 'updatedAt'>[],
+  onProgress?: (pct: number) => void,
+): Promise<UpsertControleResult> {
+  if (!items.length) return { added: 0, updated: 0, details: [] }
+
+  onProgress?.(5)
+  const existing = await getControleCirurgias()
+  onProgress?.(20)
+  const now = new Date().toISOString()
+
+  const toInsert: Record<string, unknown>[] = []
+  const toUpdate: { id: string; row: Record<string, unknown> }[] = []
+  const details: UpsertControleResult['details'] = []
+
+  for (const item of items) {
+    const match = existing.find(e => {
+      if (item.numero && e.numero) return e.numero === item.numero
+      if (item.codigoV2 && e.codigoV2) return e.codigoV2 === item.codigoV2
+      return e.data === item.data &&
+        e.pacienteNome.trim().toLowerCase() === (item.pacienteNome || '').trim().toLowerCase()
+    })
+
+    if (match) {
+      const merged: Partial<ControleCirurgia> = { ...match }
+      const changedFields: string[] = []
+      for (const key of Object.keys(item) as (keyof typeof item)[]) {
+        const v = item[key]
+        if (v !== '' && v !== null && v !== undefined) {
+          if (String((match as Record<string, unknown>)[key] ?? '') !== String(v)) changedFields.push(key)
+          ;(merged as Record<string, unknown>)[key] = v
+        }
+      }
+      toUpdate.push({ id: match.id, row: { ...itemToDb(merged), updated_at: now } })
+      details.push({ acao: 'atualizado', identificador: item.pacienteNome || item.numero || '', campos: changedFields })
+    } else {
+      toInsert.push({ id: genId(), ...itemToDb(item), created_at: now, updated_at: now })
+      details.push({ acao: 'adicionado', identificador: item.pacienteNome || '' })
+    }
+  }
+
+  onProgress?.(35)
+  const CHUNK = 200
+  const totalOps = Math.ceil(toInsert.length / CHUNK) + Math.ceil(toUpdate.length / CHUNK)
+
+  let ops = 0
+  const tick = () => { ops++; onProgress?.(35 + Math.round((ops / (totalOps || 1)) * 60)) }
+
+  for (let i = 0; i < toInsert.length; i += CHUNK) {
+    const { error } = await supabase.from('controle_cirurgias').insert(toInsert.slice(i, i + CHUNK))
+    if (error) throw error
+    tick()
+  }
+
+  for (let i = 0; i < toUpdate.length; i += CHUNK) {
+    const chunk = toUpdate.slice(i, i + CHUNK)
+    for (const { id, row } of chunk) {
+      const { error } = await supabase.from('controle_cirurgias').update(row).eq('id', id)
+      if (error) throw error
+    }
+    tick()
+  }
+
+  onProgress?.(100)
+  return { added: toInsert.length, updated: toUpdate.length, details }
+}
+
+// Keep old name as alias for backwards compat
 export async function bulkInsertControleCirurgias(
   items: Omit<ControleCirurgia, 'id' | 'createdAt' | 'updatedAt'>[],
 ): Promise<number> {
-  if (!items.length) return 0
-  const now = new Date().toISOString()
-  const rows = items.map(item => ({
-    id: genId(),
-    ...itemToDb(item),
-    created_at: now,
-    updated_at: now,
-  }))
-  const CHUNK = 200
-  let inserted = 0
-  for (let i = 0; i < rows.length; i += CHUNK) {
-    const { error } = await supabase.from('controle_cirurgias').insert(rows.slice(i, i + CHUNK))
-    if (error) throw error
-    inserted += Math.min(CHUNK, rows.length - i)
-  }
-  return inserted
+  const { added, updated } = await bulkUpsertControleCirurgias(items)
+  return added + updated
 }

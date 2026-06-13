@@ -77,6 +77,21 @@ function getTags(item: AgendaItem, isSeparated: boolean): string[] {
 /* ─── Helpers ──────────────────────────────────────────────────────── */
 function todayStr()    { return new Date().toISOString().split('T')[0] }
 function tomorrowStr() { const d = new Date(); d.setDate(d.getDate() + 1); return d.toISOString().split('T')[0] }
+
+function greeting() {
+  const h = new Date().getHours()
+  if (h < 12) return 'Bom dia'
+  if (h < 18) return 'Boa tarde'
+  return 'Boa noite'
+}
+
+function formattedDate() {
+  const now = new Date()
+  const weekdays = ['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado']
+  const months = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro']
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${weekdays[now.getDay()]}, ${now.getDate()} de ${months[now.getMonth()]} de ${now.getFullYear()} · ${pad(now.getHours())}:${pad(now.getMinutes())}`
+}
 function sortByTime(arr: AgendaItem[]) {
   return [...arr].sort((a, b) => `${a.data}${a.horaCirurgia}`.localeCompare(`${b.data}${b.horaCirurgia}`))
 }
@@ -130,9 +145,12 @@ function SurgeryCard({ item, isSeparated, showDate }: { item: AgendaItem; isSepa
                 {TAGS[t].label}
               </span>
             ))}
-            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${agendaStatusBg(item.status)}`}>
-              {agendaStatusLabel(item.status)}
-            </span>
+            {/* Only show status badge if not already shown via a tag */}
+            {!['orcamento_pre','cirurgia_faturada'].includes(item.status) && (
+              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${agendaStatusBg(item.status)}`}>
+                {agendaStatusLabel(item.status)}
+              </span>
+            )}
           </div>
         </div>
 
@@ -271,67 +289,53 @@ function CriticalPendencies({
 }
 
 /* ═══════════════════════════════════════════════════════════════════ */
-/*  NEXT 24H MINI WIDGET                                                */
+/*  HOSPITAL CHART WIDGET                                               */
 /* ═══════════════════════════════════════════════════════════════════ */
-function Next24hWidget({ items }: { items: AgendaItem[] }) {
-  const T = useT()
-  const emergencias = items.filter(i => i.emergencia)
-  const upcoming = items.slice(0, 4)
+const HOSP_COLORS = [C.blue, C.teal, C.orange, C.purple, '#C7C7CC']
 
-  if (items.length === 0) return null
+function HospitalChartWidget({ hospitals, total }: { hospitals: { nome: string; total: number }[]; total: number }) {
+  const T = useT()
+  const navigate = useNavigate()
+
+  if (!hospitals.length) return null
+
+  const data = hospitals.map((h, i) => ({ ...h, color: HOSP_COLORS[i] ?? '#C7C7CC' }))
 
   return (
-    <div style={{
-      background: T.card, border: `1px solid ${T.cardBorder}`,
-      borderRadius: 16, boxShadow: T.shadow, overflow: 'hidden',
-    }}>
-      <div className="px-4 py-3 flex items-center gap-2"
-        style={{ borderBottom: `1px solid ${T.divider}` }}>
-        <span className="w-2 h-2 rounded-full flex-shrink-0 animate-pulse"
-          style={{ background: C.green, boxShadow: `0 0 6px ${C.green}` }} />
-        <p className="font-bold text-sm" style={{ color: T.text1 }}>Próximas 24h</p>
-        <span className="ml-auto text-xs font-semibold px-2 py-0.5 rounded-full"
-          style={{ background: `${C.green}14`, color: C.green }}>
-          {items.length} cirurgia{items.length !== 1 ? 's' : ''}
-        </span>
+    <div style={{ background: T.card, border: `1px solid ${T.cardBorder}`, borderRadius: 16, boxShadow: T.shadow, overflow: 'hidden' }}>
+      <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: `1px solid ${T.divider}` }}>
+        <Building2 size={14} style={{ color: C.blue }} />
+        <p className="font-bold text-sm" style={{ color: T.text1 }}>Cirurgias por Hospital</p>
       </div>
 
-      {emergencias.length > 0 && (
-        <div className="mx-3 mt-3 px-3 py-2 rounded-xl flex items-center gap-2"
-          style={{ background: 'rgba(255,59,48,0.10)', border: '1px solid rgba(255,59,48,0.2)' }}>
-          <Zap size={13} style={{ color: C.red, flexShrink: 0 }} />
-          <p className="text-xs font-bold" style={{ color: C.red }}>
-            {emergencias.length} emergência{emergencias.length !== 1 ? 's' : ''}
-          </p>
+      <div className="p-4">
+        {/* Donut chart centered */}
+        <div className="flex justify-center">
+          <PieChart width={130} height={130}>
+            <Pie data={data} dataKey="total" cx="50%" cy="50%" outerRadius={60} innerRadius={34} paddingAngle={2}>
+              {data.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+            </Pie>
+          </PieChart>
         </div>
-      )}
 
-      <div className="divide-y px-1 py-1" style={{ borderColor: T.divider }}>
-        {upcoming.map((item, i) => (
-          <div key={item.id || i} className="flex items-center gap-3 px-3 py-2.5 rounded-xl">
-            <p className="font-mono font-bold text-sm w-12 flex-shrink-0 text-center"
-              style={{ color: item.emergencia ? C.red : C.blue }}>
-              {item.horaCirurgia || '--'}
-            </p>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold truncate" style={{ color: T.text1 }}>
-                {item.paciente || item.procedimento}
-              </p>
-              <p className="text-[10px] truncate mt-0.5" style={{ color: T.text3 }}>
-                {item.hospital}
-              </p>
+        {/* Legend */}
+        <div className="space-y-2">
+          {data.map(h => (
+            <div key={h.nome} className="flex items-start gap-2">
+              <span className="w-2 h-2 rounded-full flex-shrink-0 mt-1" style={{ background: h.color }} />
+              <span className="text-xs flex-1 leading-snug" style={{ color: T.text2 }}>{h.nome}</span>
+              <span className="text-xs font-semibold flex-shrink-0 whitespace-nowrap" style={{ color: T.text1 }}>
+                {h.total} <span style={{ color: T.text3 }}>({Math.round((h.total / total) * 100)}%)</span>
+              </span>
             </div>
-            {item.autorizada && (
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
-                style={{ background: 'rgba(52,199,89,0.12)', color: C.green }}>✓</span>
-            )}
-          </div>
-        ))}
-        {items.length > 4 && (
-          <div className="px-3 py-2 text-center">
-            <p className="text-xs" style={{ color: T.text3 }}>+ {items.length - 4} mais</p>
-          </div>
-        )}
+          ))}
+        </div>
+
+        <button onClick={() => navigate('/relatorios')}
+          className="mt-4 w-full flex items-center justify-center gap-1.5 text-xs font-semibold pt-3"
+          style={{ borderTop: `1px solid ${T.divider}`, color: C.blue }}>
+          Ver relatório completo <ArrowRight size={12} />
+        </button>
       </div>
     </div>
   )
@@ -483,7 +487,7 @@ function ControleStrip({ controle }: { controle: ControleCirurgia[] }) {
   if (!mes.length) return null
 
   const stats = [
-    { label: 'Total',     value: mes.length,                                     color: '#c02020' },
+    { label: 'Total',     value: mes.length,                                     color: '#FF3B30' },
     { label: 'Ortopedia', value: mes.filter(c => c.segmento === 'ortopedia').length, color: C.blue   },
     { label: 'Trauma',    value: mes.filter(c => c.segmento === 'trauma').length,    color: C.orange },
     { label: 'Neuro',     value: mes.filter(c => c.segmento === 'neuro').length,     color: C.purple },
@@ -495,12 +499,12 @@ function ControleStrip({ controle }: { controle: ControleCirurgia[] }) {
     <div style={{ background: T.card, border: `1px solid ${T.cardBorder}`, borderRadius: 16, boxShadow: T.shadow, overflow: 'hidden' }}>
       <div className="px-5 py-3 flex items-center justify-between" style={{ borderBottom: `1px solid ${T.divider}` }}>
         <div className="flex items-center gap-2">
-          <ClipboardList size={14} style={{ color: '#c02020' }} />
+          <ClipboardList size={14} style={{ color: '#FF3B30' }} />
           <p className="font-bold text-sm" style={{ color: T.text1 }}>
             Controle de Cirurgias — {MESES_PT[mesAtual - 1]} {anoAtual}
           </p>
         </div>
-        <button onClick={() => navigate('/controle')} className="text-xs font-medium flex items-center gap-1" style={{ color: '#c02020' }}>
+        <button onClick={() => navigate('/controle')} className="text-xs font-medium flex items-center gap-1" style={{ color: '#FF3B30' }}>
           Ver completo <ArrowRight size={11} />
         </button>
       </div>
@@ -555,7 +559,7 @@ export default function Dashboard() {
       if (i.hospital) acc[i.hospital] = (acc[i.hospital] || 0) + 1; return acc
     }, {} as Record<string, number>)
     const topHospitals = Object.entries(hospMap).sort((a, b) => b[1] - a[1]).slice(0, 5)
-      .map(([nome, total]) => ({ nome: nome.length > 22 ? nome.slice(0, 22) + '…' : nome, total }))
+      .map(([nome, total]) => ({ nome, total }))
     return {
       total: agenda.length,
       hoje: todayItems.length,
@@ -594,30 +598,29 @@ export default function Dashboard() {
   return (
     <div className="space-y-5">
 
-      {/* ── Quick action ── */}
-      {(canEdit || isAdmin) && (
-        <div className="flex items-center justify-between gap-3 rounded-2xl px-4 py-3.5"
-          style={{ background: 'linear-gradient(135deg, #7a1010 0%, #c02020 100%)', boxShadow: '0 4px 16px rgba(160,24,24,0.30)' }}>
-          <div className="min-w-0">
-            <p className="text-white font-bold text-sm leading-tight">Nova Cirurgia</p>
-            <p className="text-red-200 text-xs mt-0.5">Clique para abrir o formulário de agendamento</p>
-          </div>
-          <button onClick={() => navigate('/requisicoes/nova')}
-            className="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white font-bold text-sm active:scale-95 transition-all"
-            style={{ color: '#a01818' }}>
-            <Plus size={16} /> Agendar
-          </button>
+      {/* ── Header: greeting + action ── */}
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h1 className="text-base font-bold leading-tight" style={{ color: T.text1 }}>
+            {greeting()}, {user?.nome?.split(' ')[0] || 'Usuário'}! 👋
+          </h1>
+          <p className="text-xs mt-0.5" style={{ color: T.text3 }}>{formattedDate()}</p>
         </div>
-      )}
+        {(canEdit || isAdmin) && (
+          <button onClick={() => navigate('/requisicoes/nova')} className="btn-primary flex-shrink-0">
+            <Plus size={15} /> Nova Cirurgia
+          </button>
+        )}
+      </div>
 
       {/* ── KPI strip ── */}
       {hasAgenda ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-          <StatCard icon={CalendarClock} label="Total"       value={agendaStats.total}       color={C.blue}   />
-          <StatCard icon={Activity}      label="Hoje"        value={agendaStats.hoje}         color={C.green}  pulse />
-          <StatCard icon={ShieldCheck}   label="Autorizadas" value={agendaStats.autorizadas}  color={C.teal}   />
-          <StatCard icon={Clock}         label="Pendentes"   value={agendaStats.pendentes}    color={C.orange} />
-          <StatCard icon={CheckCircle2}  label="Finalizadas" value={agendaStats.finalizadas}  color={C.indigo} />
+          <StatCard icon={CalendarClock} label="Total"       value={agendaStats.total}       color={C.blue}   onClick={() => navigate('/requisicoes')} />
+          <StatCard icon={Activity}      label="Hoje"        value={agendaStats.hoje}         color={C.green}  pulse onClick={() => navigate('/requisicoes', { state: { filterData: 'hoje' } })} />
+          <StatCard icon={ShieldCheck}   label="Autorizadas" value={agendaStats.autorizadas}  color={C.teal}   onClick={() => navigate('/requisicoes', { state: { filterAutorizada: true } })} />
+          <StatCard icon={Clock}         label="Pendentes"   value={agendaStats.pendentes}    color={C.orange} onClick={() => navigate('/requisicoes')} />
+          <StatCard icon={CheckCircle2}  label="Finalizadas" value={agendaStats.finalizadas}  color={C.indigo} onClick={() => navigate('/requisicoes')} />
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -631,7 +634,7 @@ export default function Dashboard() {
 
       {/* ── Two-column main layout ── */}
       {hasAgenda ? (
-        <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 items-start">
 
           {/* ── LEFT: Surgery cards ── */}
           <div>
@@ -679,10 +682,9 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* ── RIGHT: Pendencies + Next 24h ── */}
+          {/* ── RIGHT: Hospital chart ── */}
           <div className="space-y-4">
-            <CriticalPendencies reqs={reqs} agenda={agenda} separacoes={separacoes} />
-            <Next24hWidget items={next24hItems} />
+            <HospitalChartWidget hospitals={agendaStats.topHospitals} total={agendaStats.total} />
           </div>
         </div>
       ) : (
@@ -703,53 +705,9 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* ── Pipeline operacional ── */}
-      {isAdmin && reqs.length > 0 && <OperationalPipeline reqs={reqs} />}
-
       {/* ── Controle de Cirurgias strip ── */}
       {isAdmin && controle.length > 0 && <ControleStrip controle={controle} />}
 
-      {/* ── Charts (bottom) ── */}
-      {isAdmin && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {hasAgenda && agendaStats.topHospitals.length > 0 && (
-            <div className="rounded-2xl p-5"
-              style={{ background: T.card, border: `1px solid ${T.cardBorder}`, boxShadow: T.shadow }}>
-              <h3 className="font-semibold text-sm mb-4 flex items-center gap-2" style={{ color: T.text1 }}>
-                <Building2 size={15} style={{ color: C.blue }} /> Top Hospitais — Agenda
-              </h3>
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={agendaStats.topHospitals} layout="vertical" margin={{ left: 0, right: 16 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={T.divider} />
-                  <XAxis type="number" tick={{ fontSize: 11, fill: T.text3 }} />
-                  <YAxis type="category" dataKey="nome" width={130} tick={{ fontSize: 10, fill: T.text2 }} />
-                  <Tooltip contentStyle={tooltipStyle} />
-                  <Bar dataKey="total" fill={C.blue} radius={[0, 6, 6, 0]} name="Cirurgias" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-          {reqStats.statusDist.length > 0 && (
-            <div className="rounded-2xl p-5"
-              style={{ background: T.card, border: `1px solid ${T.cardBorder}`, boxShadow: T.shadow }}>
-              <h3 className="font-semibold text-sm mb-4 flex items-center gap-2" style={{ color: T.text1 }}>
-                <TrendingUp size={15} style={{ color: C.blue }} /> Requisições por Status
-              </h3>
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie data={reqStats.statusDist} dataKey="total" nameKey="label" cx="50%" cy="50%" outerRadius={78} innerRadius={38}>
-                    {reqStats.statusDist.map(entry => (
-                      <Cell key={entry.status} fill={STATUS_COLORS[entry.status] || '#C7C7CC'} />
-                    ))}
-                  </Pie>
-                  <Tooltip contentStyle={tooltipStyle} />
-                  <Legend iconSize={8} wrapperStyle={{ fontSize: 11, color: T.text2 }} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </div>
-      )}
 
       {/* ── Recent reqs ── */}
       {reqStats.recent.length > 0 && (

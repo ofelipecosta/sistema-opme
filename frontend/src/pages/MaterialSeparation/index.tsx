@@ -2,9 +2,26 @@ import { useState, useEffect, useCallback } from 'react'
 import {
   Search, Printer, Package, ChevronDown, ChevronUp,
   Calendar, User, Building2, Stethoscope, AlertTriangle,
-  CheckCircle2, Clock, FileText, History, X, Trash2,
+  CheckCircle2, Clock, FileText, History, X, Trash2, Filter,
 } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
+import { useTheme } from '../../contexts/ThemeContext'
+
+function useT() {
+  const { isDark } = useTheme()
+  return {
+    isDark,
+    card:       isDark ? '#1F2937' : '#ffffff',
+    cardBorder: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)',
+    text1:      isDark ? '#F3F4F6' : '#1D1D1F',
+    text2:      isDark ? '#D1D5DB' : '#48484A',
+    text3:      isDark ? '#9CA3AF' : '#8E8E93',
+    divider:    isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
+    hover:      isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.025)',
+    inputBg:    isDark ? '#374151' : 'rgba(0,0,0,0.04)',
+    shadow:     isDark ? '0 2px 12px rgba(0,0,0,0.4)' : '0 2px 10px rgba(0,0,0,0.06)',
+  }
+}
 import { getRequisitions, deleteRequisition, getRequisitionById } from '../../utils/storage'
 import { formatDate } from '../../utils/helpers'
 import {
@@ -285,44 +302,43 @@ function statusLabel(s: string) {
 
 /* ─── Historico modal ────────────────────────────────────────────────── */
 function HistoricoModal({ reqNumero, records, onClose }: {
-  reqNumero: string
-  records: SeparacaoRecord[]
-  onClose: () => void
+  reqNumero: string; records: SeparacaoRecord[]; onClose: () => void
 }) {
+  const T = useT()
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)' }}
+      style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}>
-      <div className="w-full max-w-md rounded-2xl overflow-hidden"
-        style={{ background: 'rgba(255,255,255,0.97)', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 24px 60px rgba(0,0,0,0.18)' }}>
-        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+      <div className="w-full max-w-md mx-4 rounded-2xl overflow-hidden"
+        style={{ background: T.card, border: `1px solid ${T.cardBorder}`, boxShadow: T.shadow }}>
+        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: `1px solid ${T.divider}` }}>
           <div>
-            <p className="font-bold text-sm" style={{ color: '#1D1D1F' }}>Histórico de Separações</p>
-            <p className="text-xs mt-0.5" style={{ color: '#8E8E93' }}>{reqNumero}</p>
+            <p className="font-bold text-sm" style={{ color: T.text1 }}>Histórico de Separações</p>
+            <p className="text-xs mt-0.5" style={{ color: T.text3 }}>{reqNumero}</p>
           </div>
           <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center"
-            style={{ background: 'rgba(0,0,0,0.06)', color: '#48484A' }}>
+            style={{ background: T.inputBg, color: T.text2 }}>
             <X size={14} />
           </button>
         </div>
-        <div className="divide-y p-2" style={{ maxHeight: 360, overflowY: 'auto', borderColor: 'rgba(0,0,0,0.04)' }}>
+        <div className="divide-y p-2" style={{ maxHeight: 360, overflowY: 'auto', borderColor: T.divider }}>
           {records.length === 0 ? (
-            <p className="py-8 text-center text-sm" style={{ color: '#8E8E93' }}>Nenhum registro ainda</p>
+            <p className="py-8 text-center text-sm" style={{ color: T.text3 }}>Nenhum registro ainda</p>
           ) : records.map(r => (
             <div key={r.id} className="flex items-start gap-3 px-3 py-3 rounded-xl">
               <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold"
-                style={{ background: r.via === 1 ? 'rgba(52,199,89,0.12)' : 'rgba(0,122,255,0.10)', color: r.via === 1 ? '#34C759' : '#007AFF' }}>
+                style={{ background: r.via === 1 ? 'rgba(52,199,89,0.15)' : 'rgba(0,122,255,0.12)', color: r.via === 1 ? '#34C759' : '#007AFF' }}>
                 {r.via}ª
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold" style={{ color: '#1D1D1F' }}>{r.separadoPorNome}</p>
-                <p className="text-xs mt-0.5" style={{ color: '#8E8E93' }}>
+                <p className="text-sm font-semibold" style={{ color: T.text1 }}>{r.separadoPorNome}</p>
+                <p className="text-xs mt-0.5" style={{ color: T.text3 }}>
                   {new Date(r.separadoEm).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                 </p>
-                {r.observacao && <p className="text-xs mt-0.5 italic" style={{ color: '#48484A' }}>{r.observacao}</p>}
+                {r.observacao && <p className="text-xs mt-0.5 italic" style={{ color: T.text2 }}>{r.observacao}</p>}
               </div>
               <span className="text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
-                style={{ background: r.via === 1 ? 'rgba(52,199,89,0.12)' : 'rgba(0,122,255,0.10)', color: r.via === 1 ? '#34C759' : '#007AFF' }}>
+                style={{ background: r.via === 1 ? 'rgba(52,199,89,0.15)' : 'rgba(0,122,255,0.12)', color: r.via === 1 ? '#34C759' : '#007AFF' }}>
                 {r.via === 1 ? '1ª via' : `${r.via}ª via`}
               </span>
             </div>
@@ -335,27 +351,26 @@ function HistoricoModal({ reqNumero, records, onClose }: {
 
 /* ─── Confirm / obs modal ────────────────────────────────────────────── */
 function ConfirmSepModal({ req, onConfirm, onClose }: {
-  req: Requisition
-  onConfirm: (obs: string) => void
-  onClose: () => void
+  req: Requisition; onConfirm: (obs: string) => void; onClose: () => void
 }) {
+  const T = useT()
   const [obs, setObs] = useState('')
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)' }}
+      style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}>
-      <div className="w-full max-w-sm rounded-2xl overflow-hidden"
-        style={{ background: 'rgba(255,255,255,0.97)', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 24px 60px rgba(0,0,0,0.18)' }}>
-        <div className="px-5 py-4" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-          <p className="font-bold" style={{ color: '#1D1D1F' }}>Confirmar Separação</p>
-          <p className="text-xs mt-1" style={{ color: '#8E8E93' }}>{req.numero} · {req.pacienteNome}</p>
+      <div className="w-full max-w-sm mx-4 rounded-2xl overflow-hidden"
+        style={{ background: T.card, border: `1px solid ${T.cardBorder}`, boxShadow: T.shadow }}>
+        <div className="px-5 py-4" style={{ borderBottom: `1px solid ${T.divider}` }}>
+          <p className="font-bold" style={{ color: T.text1 }}>Confirmar Separação</p>
+          <p className="text-xs mt-1" style={{ color: T.text3 }}>{req.numero} · {req.pacienteNome}</p>
         </div>
         <div className="px-5 py-4 space-y-3">
-          <p className="text-sm" style={{ color: '#48484A' }}>
+          <p className="text-sm" style={{ color: T.text2 }}>
             Confirmar que os materiais desta requisição foram separados?
           </p>
           <div>
-            <label className="block text-xs font-semibold mb-1.5" style={{ color: '#8E8E93' }}>
+            <label className="block text-xs font-semibold mb-1.5" style={{ color: T.text3 }}>
               Observação (opcional)
             </label>
             <textarea
@@ -364,19 +379,13 @@ function ConfirmSepModal({ req, onConfirm, onClose }: {
               rows={2}
               placeholder="Ex: material retirado do armário B-3..."
               className="w-full rounded-xl px-3 py-2 text-sm resize-none outline-none"
-              style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.07)', color: '#1D1D1F' }}
+              style={{ background: T.inputBg, border: `1px solid ${T.cardBorder}`, color: T.text1 }}
             />
           </div>
         </div>
-        <div className="px-5 py-4 flex gap-3 justify-end" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
-          <button onClick={onClose} className="px-4 py-2 rounded-xl text-sm font-medium"
-            style={{ background: 'rgba(0,0,0,0.05)', color: '#48484A' }}>
-            Cancelar
-          </button>
-          <button onClick={() => onConfirm(obs)} className="px-4 py-2 rounded-xl text-sm font-semibold"
-            style={{ background: '#34C759', color: '#fff', boxShadow: '0 2px 8px rgba(52,199,89,0.35)' }}>
-            ✓ Confirmar Separação
-          </button>
+        <div className="px-5 py-4 flex gap-3 justify-end" style={{ borderTop: `1px solid ${T.divider}` }}>
+          <button onClick={onClose} className="btn-secondary btn-sm">Cancelar</button>
+          <button onClick={() => onConfirm(obs)} className="btn-success btn-sm">✓ Confirmar Separação</button>
         </div>
       </div>
     </div>
@@ -385,52 +394,50 @@ function ConfirmSepModal({ req, onConfirm, onClose }: {
 
 /* ─── Print modal ────────────────────────────────────────────────────── */
 function PrintModal({ req, sep, isReprint, onClose }: {
-  req: Requisition
-  sep: SeparacaoRecord | null
-  isReprint: boolean
-  onClose: () => void
+  req: Requisition; sep: SeparacaoRecord | null; isReprint: boolean; onClose: () => void
 }) {
+  const T = useT()
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)' }}
+      style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}>
-      <div className="w-full max-w-xs rounded-2xl overflow-hidden"
-        style={{ background: 'rgba(255,255,255,0.97)', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 24px 60px rgba(0,0,0,0.18)' }}>
-        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-          <p className="font-bold text-sm" style={{ color: '#1D1D1F' }}>
+      <div className="w-full max-w-xs mx-4 rounded-2xl overflow-hidden"
+        style={{ background: T.card, border: `1px solid ${T.cardBorder}`, boxShadow: T.shadow }}>
+        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: `1px solid ${T.divider}` }}>
+          <p className="font-bold text-sm" style={{ color: T.text1 }}>
             {isReprint ? `Imprimir ${sep ? sep.via + 'ª Via' : ''}` : 'Imprimir'}
           </p>
           <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center"
-            style={{ background: 'rgba(0,0,0,0.06)', color: '#48484A' }}>
+            style={{ background: T.inputBg, color: T.text2 }}>
             <X size={14} />
           </button>
         </div>
         <div className="p-5 space-y-3">
-          <p className="text-xs" style={{ color: '#8E8E93' }}>Escolha o formato de impressão:</p>
+          <p className="text-xs" style={{ color: T.text3 }}>Escolha o formato de impressão:</p>
           <button
             onClick={() => { doPrint(buildCupom80(req, sep, isReprint), '80mm'); onClose() }}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors hover:bg-black/[0.03]"
-            style={{ border: '1px solid rgba(0,0,0,0.08)' }}>
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left"
+            style={{ border: `1px solid ${T.cardBorder}`, background: T.hover }}>
             <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background: 'rgba(0,122,255,0.10)' }}>
+              style={{ background: 'rgba(0,122,255,0.12)' }}>
               <Printer size={16} style={{ color: '#007AFF' }} />
             </div>
             <div>
-              <p className="text-sm font-semibold" style={{ color: '#1D1D1F' }}>Cupom Térmico</p>
-              <p className="text-xs mt-0.5" style={{ color: '#8E8E93' }}>Impressora 80mm</p>
+              <p className="text-sm font-semibold" style={{ color: T.text1 }}>Cupom Térmico</p>
+              <p className="text-xs mt-0.5" style={{ color: T.text3 }}>Impressora 80mm</p>
             </div>
           </button>
           <button
             onClick={() => { doPrint(buildA4(req, sep, isReprint), 'A4'); onClose() }}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors hover:bg-black/[0.03]"
-            style={{ border: '1px solid rgba(0,0,0,0.08)' }}>
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left"
+            style={{ border: `1px solid ${T.cardBorder}`, background: T.hover }}>
             <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background: 'rgba(52,199,89,0.10)' }}>
+              style={{ background: 'rgba(52,199,89,0.12)' }}>
               <FileText size={16} style={{ color: '#34C759' }} />
             </div>
             <div>
-              <p className="text-sm font-semibold" style={{ color: '#1D1D1F' }}>Folha A4</p>
-              <p className="text-xs mt-0.5" style={{ color: '#8E8E93' }}>Impressora convencional</p>
+              <p className="text-sm font-semibold" style={{ color: T.text1 }}>Folha A4</p>
+              <p className="text-xs mt-0.5" style={{ color: T.text3 }}>Impressora convencional</p>
             </div>
           </button>
         </div>
@@ -441,39 +448,32 @@ function PrintModal({ req, sep, isReprint, onClose }: {
 
 /* ─── Delete confirm modal ───────────────────────────────────────────── */
 function DeleteConfirmModal({ req, onConfirm, onClose }: {
-  req: Requisition
-  onConfirm: () => void
-  onClose: () => void
+  req: Requisition; onConfirm: () => void; onClose: () => void
 }) {
+  const T = useT()
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)' }}
+      style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}>
       <div className="w-full max-w-sm rounded-2xl overflow-hidden mx-4"
-        style={{ background: 'rgba(255,255,255,0.97)', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 24px 60px rgba(0,0,0,0.20)' }}>
+        style={{ background: T.card, border: `1px solid ${T.cardBorder}`, boxShadow: T.shadow }}>
         <div className="px-5 pt-5 pb-4">
           <div className="w-11 h-11 rounded-2xl flex items-center justify-center mb-4"
-            style={{ background: 'rgba(255,59,48,0.10)' }}>
+            style={{ background: 'rgba(255,59,48,0.12)' }}>
             <Trash2 size={20} style={{ color: '#FF3B30' }} />
           </div>
-          <p className="font-bold text-base" style={{ color: '#1D1D1F' }}>Excluir Requisição</p>
-          <p className="text-sm mt-1" style={{ color: '#8E8E93' }}>
-            <span className="font-semibold" style={{ color: '#48484A' }}>{req.numero}</span>
+          <p className="font-bold text-base" style={{ color: T.text1 }}>Excluir Requisição</p>
+          <p className="text-sm mt-1" style={{ color: T.text3 }}>
+            <span className="font-semibold" style={{ color: T.text2 }}>{req.numero}</span>
             {req.pacienteNome ? ` · ${req.pacienteNome}` : ''}
           </p>
-          <p className="text-sm mt-3" style={{ color: '#48484A' }}>
+          <p className="text-sm mt-3" style={{ color: T.text2 }}>
             Esta ação é irreversível. A requisição e todo o histórico de separação serão removidos permanentemente.
           </p>
         </div>
-        <div className="px-5 py-4 flex gap-3 justify-end" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
-          <button onClick={onClose} className="px-4 py-2 rounded-xl text-sm font-medium"
-            style={{ background: 'rgba(0,0,0,0.05)', color: '#48484A' }}>
-            Cancelar
-          </button>
-          <button onClick={onConfirm} className="px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2"
-            style={{ background: '#FF3B30', color: '#fff', boxShadow: '0 2px 8px rgba(255,59,48,0.35)' }}>
-            <Trash2 size={14} /> Excluir
-          </button>
+        <div className="px-5 py-4 flex gap-3 justify-end" style={{ borderTop: `1px solid ${T.divider}` }}>
+          <button onClick={onClose} className="btn-secondary btn-sm">Cancelar</button>
+          <button onClick={onConfirm} className="btn-danger btn-sm flex items-center gap-1.5"><Trash2 size={13} /> Excluir</button>
         </div>
       </div>
     </div>
@@ -483,6 +483,7 @@ function DeleteConfirmModal({ req, onConfirm, onClose }: {
 /* ─── Req card ───────────────────────────────────────────────────────── */
 function ReqCard({ req, onDeleted }: { req: Requisition; onDeleted: (id: string) => void }) {
   const { user, isAdmin } = useAuth()
+  const T = useT()
   const [open, setOpen] = useState(false)
   const [sepRecord, setSepRecord] = useState<SeparacaoRecord | null>(null)
   const [historico, setHistorico] = useState<SeparacaoRecord[]>([])
@@ -543,58 +544,58 @@ function ReqCard({ req, onDeleted }: { req: Requisition; onDeleted: (id: string)
       {showDelete    && <DeleteConfirmModal req={req} onConfirm={handleDelete} onClose={() => setShowDelete(false)} />}
 
       <div style={{
-        background: '#fff',
-        border: `1.5px solid ${accentColor}30`,
+        background: T.card,
+        border: `1px solid ${T.cardBorder}`,
         borderLeft: `4px solid ${accentColor}`,
         borderRadius: 16,
         overflow: 'hidden',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.06)',
+        boxShadow: T.shadow,
       }}>
 
         {/* ── Top info row ── */}
         <div className="px-4 pt-4 pb-3">
           {/* Row 1: REQ number + badges */}
           <div className="flex items-center gap-2 flex-wrap mb-2">
-            <span className="text-xs font-mono font-semibold" style={{ color: '#8E8E93' }}>{req.numero}</span>
+            <span className="text-xs font-mono font-semibold" style={{ color: T.text3 }}>{req.numero}</span>
             {emerg && (
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: '#FF3B30', color: '#fff' }}>
                 ⚡ EMERGÊNCIA
               </span>
             )}
             <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
-              style={{ background: `${statusColor(req.status)}15`, color: statusColor(req.status), border: `1px solid ${statusColor(req.status)}30` }}>
+              style={{ background: `${statusColor(req.status)}20`, color: statusColor(req.status), border: `1px solid ${statusColor(req.status)}40` }}>
               {statusLabel(req.status)}
             </span>
             {jaFoiSeparado && (
               <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
-                style={{ background: 'rgba(52,199,89,0.12)', color: '#34C759', border: '1px solid rgba(52,199,89,0.25)' }}>
+                style={{ background: 'rgba(52,199,89,0.15)', color: '#34C759', border: '1px solid rgba(52,199,89,0.3)' }}>
                 ✓ Separado
               </span>
             )}
           </div>
 
           {/* Row 2: Patient name */}
-          <p className="font-bold text-base leading-tight" style={{ color: '#1D1D1F' }}>
+          <p className="font-bold text-base leading-tight" style={{ color: T.text1 }}>
             {req.pacienteNome || 'Paciente não informado'}
           </p>
 
           {/* Row 3: Surgery info chips */}
           <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
             {req.cirurgiaData && (
-              <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color: '#48484A' }}>
-                <Calendar size={12} style={{ color: '#8E8E93', flexShrink: 0 }} />
+              <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color: T.text2 }}>
+                <Calendar size={12} style={{ color: T.text3, flexShrink: 0 }} />
                 {formatDate(req.cirurgiaData)}{req.cirurgiaHorario ? ` às ${req.cirurgiaHorario}` : ''}
               </span>
             )}
             {req.hospitalNome && (
-              <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color: '#48484A' }}>
-                <Building2 size={12} style={{ color: '#8E8E93', flexShrink: 0 }} />
+              <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color: T.text2 }}>
+                <Building2 size={12} style={{ color: T.text3, flexShrink: 0 }} />
                 {req.hospitalNome}
               </span>
             )}
             {req.medicoNome && (
-              <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color: '#48484A' }}>
-                <Stethoscope size={12} style={{ color: '#8E8E93', flexShrink: 0 }} />
+              <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color: T.text2 }}>
+                <Stethoscope size={12} style={{ color: T.text3, flexShrink: 0 }} />
                 {req.medicoNome}
               </span>
             )}
@@ -603,7 +604,7 @@ function ReqCard({ req, onDeleted }: { req: Requisition; onDeleted: (id: string)
           {/* Separação info */}
           {jaFoiSeparado && sepRecord && (
             <div className="mt-2 flex items-center gap-1.5 text-xs rounded-lg px-2.5 py-1.5 w-fit"
-              style={{ background: 'rgba(52,199,89,0.08)', color: '#166534' }}>
+              style={{ background: 'rgba(52,199,89,0.10)', color: T.isDark ? '#86efac' : '#166534' }}>
               <CheckCircle2 size={12} />
               Separado por <strong>{sepRecord.separadoPorNome}</strong> em{' '}
               {new Date(sepRecord.separadoEm).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
@@ -612,7 +613,7 @@ function ReqCard({ req, onDeleted }: { req: Requisition; onDeleted: (id: string)
         </div>
 
         {/* ── Divider ── */}
-        <div style={{ height: 1, background: 'rgba(0,0,0,0.06)', margin: '0 16px' }} />
+        <div style={{ height: 1, background: T.divider, margin: '0 16px' }} />
 
         {/* ── Action bar ── */}
         <div className="flex items-center gap-2 px-4 py-3 flex-wrap" onClick={e => e.stopPropagation()}>
@@ -621,7 +622,7 @@ function ReqCard({ req, onDeleted }: { req: Requisition; onDeleted: (id: string)
           <button
             onClick={() => setOpen(o => !o)}
             className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg"
-            style={{ background: 'rgba(0,122,255,0.08)', color: '#007AFF', border: '1px solid rgba(0,122,255,0.15)' }}>
+            style={{ background: 'rgba(0,122,255,0.10)', color: '#007AFF', border: '1px solid rgba(0,122,255,0.18)' }}>
             <Package size={12} />
             {items.length} {items.length === 1 ? 'item' : 'itens'}
             {open ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
@@ -633,7 +634,7 @@ function ReqCard({ req, onDeleted }: { req: Requisition; onDeleted: (id: string)
           {historico.length > 0 && (
             <button onClick={() => setShowHistorico(true)}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium"
-              style={{ background: 'rgba(0,0,0,0.04)', color: '#8E8E93' }}>
+              style={{ background: T.inputBg, color: T.text3 }}>
               <History size={13} /> Histórico
             </button>
           )}
@@ -647,7 +648,7 @@ function ReqCard({ req, onDeleted }: { req: Requisition; onDeleted: (id: string)
             </button>
           ) : (
             <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold"
-              style={{ background: 'rgba(52,199,89,0.10)', color: '#166534', border: '1px solid rgba(52,199,89,0.25)' }}>
+              style={{ background: 'rgba(52,199,89,0.12)', color: T.isDark ? '#86efac' : '#166534', border: '1px solid rgba(52,199,89,0.25)' }}>
               <CheckCircle2 size={14} /> Separado
             </span>
           )}
@@ -663,7 +664,7 @@ function ReqCard({ req, onDeleted }: { req: Requisition; onDeleted: (id: string)
           {isAdmin && (
             <button onClick={() => setShowDelete(true)}
               className="w-8 h-8 rounded-lg flex items-center justify-center"
-              style={{ background: 'rgba(255,59,48,0.07)', color: '#FF3B30' }} title="Excluir">
+              style={{ background: 'rgba(255,59,48,0.08)', color: '#FF3B30' }} title="Excluir">
               <Trash2 size={14} />
             </button>
           )}
@@ -671,55 +672,51 @@ function ReqCard({ req, onDeleted }: { req: Requisition; onDeleted: (id: string)
 
         {/* ── Materials list (expandable) ── */}
         {open && (
-          <div style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+          <div style={{ borderTop: `1px solid ${T.divider}` }}>
             {/* Vendedor + procedimento */}
             <div className="flex flex-wrap gap-x-4 gap-y-1 px-4 py-2.5"
-              style={{ background: 'rgba(0,0,0,0.02)', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+              style={{ background: T.hover, borderBottom: `1px solid ${T.divider}` }}>
               {(req.vendedorNome || req.solicitanteNome) && (
-                <span className="flex items-center gap-1.5 text-xs" style={{ color: '#8E8E93' }}>
-                  <User size={11} /> Vendedor: <strong style={{ color: '#48484A' }}>{req.vendedorNome || req.solicitanteNome}</strong>
+                <span className="flex items-center gap-1.5 text-xs" style={{ color: T.text3 }}>
+                  <User size={11} /> Vendedor: <strong style={{ color: T.text2 }}>{req.vendedorNome || req.solicitanteNome}</strong>
                 </span>
               )}
               {req.cirurgiaProcedimento && (
-                <span className="flex items-center gap-1.5 text-xs" style={{ color: '#8E8E93' }}>
-                  <FileText size={11} /> <strong style={{ color: '#48484A' }}>{req.cirurgiaProcedimento}</strong>
+                <span className="flex items-center gap-1.5 text-xs" style={{ color: T.text3 }}>
+                  <FileText size={11} /> <strong style={{ color: T.text2 }}>{req.cirurgiaProcedimento}</strong>
                 </span>
               )}
             </div>
 
             {items.length === 0 ? (
               <div className="py-8 text-center">
-                <Package size={28} className="mx-auto mb-2" style={{ color: '#D1D1D6' }} />
-                <p className="text-sm" style={{ color: '#8E8E93' }}>Nenhum material cadastrado</p>
+                <Package size={28} className="mx-auto mb-2" style={{ color: T.text3 }} />
+                <p className="text-sm" style={{ color: T.text3 }}>Nenhum material cadastrado</p>
               </div>
             ) : (
-              <div className="divide-y" style={{ borderColor: 'rgba(0,0,0,0.04)' }}>
+              <div className="divide-y" style={{ borderColor: T.divider }}>
                 {items.map((it, idx) => (
                   <div key={it.id || idx} className="flex items-center gap-3 px-4 py-3">
-                    {/* Check mark */}
                     <span className="text-xl flex-shrink-0 w-6 text-center leading-none"
-                      style={{ color: jaFoiSeparado ? '#34C759' : '#D1D1D6' }}>
+                      style={{ color: jaFoiSeparado ? '#34C759' : T.text3 }}>
                       {jaFoiSeparado ? '✓' : '☐'}
                     </span>
-                    {/* Info */}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold" style={{ color: '#1D1D1F' }}>{it.descricao}</p>
+                      <p className="text-sm font-semibold" style={{ color: T.text1 }}>{it.descricao}</p>
                       <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
-                        {it.codigo && <span className="text-xs font-mono" style={{ color: '#8E8E93' }}>{it.codigo}</span>}
-                        {it.fabricante && <span className="text-xs" style={{ color: '#8E8E93' }}>{it.fabricante}</span>}
+                        {it.codigo && <span className="text-xs font-mono" style={{ color: T.text3 }}>{it.codigo}</span>}
+                        {it.fabricante && <span className="text-xs" style={{ color: T.text3 }}>{it.fabricante}</span>}
                         {it.observacao && <span className="text-xs italic" style={{ color: '#FF9500' }}>{it.observacao}</span>}
                       </div>
                     </div>
-                    {/* Qty badge */}
                     <div className="flex-shrink-0 text-right">
                       <span className="text-lg font-bold" style={{ color: '#007AFF' }}>{it.quantidade}</span>
-                      <span className="text-xs font-mono block leading-none" style={{ color: '#8E8E93' }}>{it.unidade || 'UN'}</span>
+                      <span className="text-xs font-mono block leading-none" style={{ color: T.text3 }}>{it.unidade || 'UN'}</span>
                     </div>
                   </div>
                 ))}
-                {/* Totals */}
                 <div className="flex justify-end gap-6 px-4 py-2.5 text-xs font-semibold"
-                  style={{ background: 'rgba(0,0,0,0.02)', color: '#48484A' }}>
+                  style={{ background: T.hover, color: T.text2 }}>
                   <span>{items.length} {items.length === 1 ? 'item' : 'itens'}</span>
                   <span>Qtd total: <span style={{ color: '#007AFF' }}>{items.reduce((s, i) => s + Number(i.quantidade), 0)}</span></span>
                 </div>
@@ -727,11 +724,11 @@ function ReqCard({ req, onDeleted }: { req: Requisition; onDeleted: (id: string)
             )}
 
             {req.observacoesGerais && req.observacoesGerais !== 'NÃO HÁ' && (
-              <div className="px-4 py-3 flex gap-2" style={{ borderTop: '1px solid rgba(0,0,0,0.04)', background: 'rgba(255,149,0,0.04)' }}>
+              <div className="px-4 py-3 flex gap-2" style={{ borderTop: `1px solid ${T.divider}`, background: 'rgba(255,149,0,0.05)' }}>
                 <Clock size={14} style={{ color: '#FF9500', flexShrink: 0, marginTop: 2 }} />
                 <div>
                   <p className="text-xs font-semibold" style={{ color: '#FF9500' }}>Observações</p>
-                  <p className="text-sm mt-0.5" style={{ color: '#48484A' }}>{req.observacoesGerais}</p>
+                  <p className="text-sm mt-0.5" style={{ color: T.text2 }}>{req.observacoesGerais}</p>
                 </div>
               </div>
             )}
@@ -744,6 +741,7 @@ function ReqCard({ req, onDeleted }: { req: Requisition; onDeleted: (id: string)
 
 /* ─── Main page ──────────────────────────────────────────────────────── */
 export default function MaterialSeparation() {
+  const T = useT()
   const [search, setSearch] = useState('')
   const [filterDate, setFilterDate] = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | 'pendente' | 'separado'>('all')
@@ -789,101 +787,96 @@ export default function MaterialSeparation() {
     return (a.cirurgiaData || '').localeCompare(b.cirurgiaData || '') || (a.cirurgiaHorario || '').localeCompare(b.cirurgiaHorario || '')
   })
 
-  const totalItems = filtered.reduce((s, r) => s + (r.materiais?.length ?? 0), 0)
   const separados = all.filter(r => sepMap.has(r.id)).length
   const pendentes = all.length - separados
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
 
   return (
-    <div className="p-4 sm:p-6 space-y-5 max-w-5xl mx-auto">
+    <div className="space-y-3">
 
-      {/* ── Header ── */}
-      <div>
-        <h2 className="text-xl font-bold tracking-tight" style={{ color: '#1D1D1F' }}>Separação de Materiais</h2>
-      </div>
-
-      {/* ── KPI strip — estilo Apple premium ── */}
-      <div className="grid grid-cols-3 gap-3">
+      {/* ── KPIs + filtros em linha ── */}
+      <div className="flex flex-wrap items-center gap-3">
+        {/* KPI pills */}
         {[
           { label: 'Total',     value: all.length, color: '#007AFF', icon: Package },
           { label: 'Pendentes', value: pendentes,   color: '#FF9500', icon: Clock   },
           { label: 'Separados', value: separados,   color: '#34C759', icon: CheckCircle2 },
         ].map(k => (
-          <div key={k.label}
-            className="rounded-2xl p-4 transition-all"
-            style={{
-              background: 'rgba(255,255,255,0.88)',
-              border: '1px solid rgba(0,0,0,0.06)',
-              backdropFilter: 'blur(16px)',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-            }}>
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-                style={{ background: `${k.color}14` }}>
-                <k.icon size={15} style={{ color: k.color }} />
-              </div>
+          <div key={k.label} className="flex items-center gap-3 rounded-2xl px-5 py-3"
+            style={{ background: T.card, border: `1px solid ${T.cardBorder}`, boxShadow: T.shadow }}>
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ background: `${k.color}18` }}>
+              <k.icon size={15} style={{ color: k.color }} />
             </div>
-            <p className="text-3xl font-bold leading-none mb-1.5" style={{ color: '#1D1D1F' }}>{k.value}</p>
-            <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#8E8E93' }}>{k.label}</p>
-            <div className="h-0.5 rounded-full mt-2.5 w-6" style={{ background: k.color, opacity: 0.4 }} />
+            <div>
+              <p className="text-2xl font-bold leading-none" style={{ color: k.color }}>{k.value}</p>
+              <p className="text-xs font-semibold uppercase tracking-wider mt-0.5" style={{ color: T.text3 }}>{k.label}</p>
+            </div>
           </div>
         ))}
-      </div>
 
-      {/* ── Filters ── */}
-      <div className="flex flex-wrap gap-3">
-        <div className="flex items-center gap-2 flex-1 min-w-48 rounded-xl px-3 py-2.5"
-          style={{ background: 'rgba(255,255,255,0.88)', border: '1px solid rgba(0,0,0,0.07)', backdropFilter: 'blur(16px)' }}>
-          <Search size={15} style={{ color: '#8E8E93', flexShrink: 0 }} />
+        {/* Separador visual */}
+        <div className="h-8 w-px mx-1 hidden sm:block" style={{ background: T.cardBorder }} />
+
+        {/* Search */}
+        <div className="flex items-center gap-2 flex-1 min-w-56 rounded-xl px-3 py-2.5"
+          style={{ background: T.card, border: `1px solid ${T.cardBorder}` }}>
+          <Search size={15} style={{ color: T.text3, flexShrink: 0 }} />
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Buscar paciente, material, hospital..."
-            className="flex-1 bg-transparent text-sm outline-none" style={{ color: '#1D1D1F' }} />
+            className="flex-1 bg-transparent text-sm outline-none" style={{ color: T.text1 }} />
+          {search && <button onClick={() => setSearch('')} style={{ color: T.text3 }}><X size={13} /></button>}
         </div>
 
+        {/* Date filter */}
         <input type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)}
           className="rounded-xl px-3 py-2.5 text-sm outline-none"
-          style={{ background: 'rgba(255,255,255,0.88)', border: '1px solid rgba(0,0,0,0.07)', backdropFilter: 'blur(16px)', color: filterDate ? '#1D1D1F' : '#8E8E93' }} />
+          style={{ background: T.card, border: `1px solid ${T.cardBorder}`, color: filterDate ? T.text1 : T.text3 }} />
 
-        {/* Status filter tabs */}
-        <div className="flex rounded-xl overflow-hidden" style={{ border: '1px solid rgba(0,0,0,0.07)', background: 'rgba(255,255,255,0.88)' }}>
+        {/* Status tabs */}
+        <div className="flex rounded-xl overflow-hidden" style={{ border: `1px solid ${T.cardBorder}`, background: T.card }}>
           {([
-            { v: 'all', l: 'Todas' },
-            { v: 'pendente', l: '⏳ Pendentes' },
+            { v: 'all',      l: 'Todas' },
+            { v: 'pendente', l: 'Pendentes' },
             { v: 'separado', l: '✓ Separados' },
           ] as const).map(({ v, l }) => (
             <button key={v} onClick={() => setFilterStatus(v)}
-              className="px-3 py-2 text-xs font-medium transition-all"
-              style={filterStatus === v
-                ? { background: '#007AFF', color: '#fff' }
-                : { color: '#8E8E93' }}>
+              className="px-3 py-2.5 text-xs font-medium transition-all"
+              style={filterStatus === v ? { background: '#007AFF', color: '#fff' } : { color: T.text3 }}>
               {l}
             </button>
           ))}
         </div>
 
-        {(search || filterDate) && (
-          <button onClick={() => { setSearch(''); setFilterDate('') }}
-            className="px-4 py-2.5 rounded-xl text-sm font-medium"
+        {filterDate && (
+          <button onClick={() => setFilterDate('')}
+            className="px-3 py-2.5 rounded-xl text-sm font-medium"
             style={{ background: 'rgba(255,59,48,0.08)', color: '#FF3B30', border: '1px solid rgba(255,59,48,0.15)' }}>
-            Limpar
+            <X size={13} />
           </button>
         )}
       </div>
 
+      {(search || filterDate || filterStatus !== 'all') && (
+        <p className="text-xs" style={{ color: T.text3 }}>
+          {filtered.length} resultado{filtered.length !== 1 ? 's' : ''}
+        </p>
+      )}
+
       {/* ── List ── */}
       {filtered.length === 0 ? (
         <div className="py-16 text-center rounded-2xl"
-          style={{ background: 'rgba(255,255,255,0.7)', border: '1px solid rgba(0,0,0,0.06)' }}>
-          <Package size={36} className="mx-auto mb-3" style={{ color: '#D1D1D6' }} />
-          <p className="font-semibold" style={{ color: '#48484A' }}>Nenhuma requisição encontrada</p>
-          <p className="text-sm mt-1" style={{ color: '#8E8E93' }}>
+          style={{ background: T.card, border: `1px solid ${T.cardBorder}` }}>
+          <Package size={36} className="mx-auto mb-3" style={{ color: T.text3 }} />
+          <p className="font-semibold" style={{ color: T.text2 }}>Nenhuma requisição encontrada</p>
+          <p className="text-sm mt-1" style={{ color: T.text3 }}>
             {search || filterDate ? 'Tente ajustar os filtros' : 'As requisições aparecerão aqui'}
           </p>
         </div>

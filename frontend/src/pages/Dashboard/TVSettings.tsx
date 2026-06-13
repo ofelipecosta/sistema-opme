@@ -1,4 +1,4 @@
-import { X, Eye, EyeOff, CalendarDays, Clock, Layers } from 'lucide-react'
+import { X, Eye, EyeOff, CalendarDays, Clock, Layers, Columns } from 'lucide-react'
 import { agendaStatusLabel } from '../../utils/agenda-helpers'
 import type { AgendaStatus } from '../../types/agenda'
 
@@ -47,7 +47,19 @@ export interface TVSettings {
   dateFilter: DateFilter
   hidePast: boolean    // hide surgeries before today
   compact: boolean     // dense rows — fit everything on screen
+  hiddenColumns: string[]
 }
+
+export const TV_COLUMN_DEFS: { id: string; label: string; desc: string }[] = [
+  { id: 'codigo',           label: 'Cód.',           desc: 'Código da cirurgia'         },
+  { id: 'hospital',         label: 'Hospital',        desc: 'Nome do hospital'           },
+  { id: 'medico',           label: 'Médico',          desc: 'Médico responsável'         },
+  { id: 'convenio',         label: 'Convênio',        desc: 'Plano/convênio do paciente' },
+  { id: 'cliente',          label: 'Cliente',         desc: 'Operadora / cliente'        },
+  { id: 'vendedor',         label: 'Vendedor',        desc: 'Vendedor responsável'       },
+  { id: 'instrumentadores', label: 'Instrumentador',  desc: 'Instrumentador cirúrgico'   },
+  { id: 'autorizada',       label: 'Aut.',            desc: 'Cirurgia autorizada'        },
+]
 
 const DEFAULT_DATE_FILTER: DateFilter = { mode: 'all', from: '', to: '' }
 
@@ -61,10 +73,11 @@ export function loadTVSettings(): TVSettings {
         dateFilter:     p.dateFilter     ?? DEFAULT_DATE_FILTER,
         hidePast:       p.hidePast       ?? false,
         compact:        p.compact        ?? false,
+        hiddenColumns:  p.hiddenColumns  ?? [],
       }
     }
   } catch {}
-  return { hiddenStatuses: ['cancelada'], dateFilter: DEFAULT_DATE_FILTER, hidePast: false, compact: false }
+  return { hiddenStatuses: ['cancelada'], dateFilter: DEFAULT_DATE_FILTER, hidePast: false, compact: false, hiddenColumns: [] }
 }
 
 export function saveTVSettings(s: TVSettings) {
@@ -141,6 +154,13 @@ export default function TVSettingsPanel({ settings, onChange, onClose, dark = fa
       ? settings.hiddenStatuses.filter(s => s !== status)
       : [...settings.hiddenStatuses, status]
     set({ hiddenStatuses: hidden })
+  }
+
+  function toggleColumn(id: string) {
+    const hidden = (settings.hiddenColumns ?? []).includes(id)
+      ? (settings.hiddenColumns ?? []).filter(c => c !== id)
+      : [...(settings.hiddenColumns ?? []), id]
+    set({ hiddenColumns: hidden })
   }
 
   const visibleCount = ALL_STATUSES.length - settings.hiddenStatuses.length
@@ -275,6 +295,31 @@ export default function TVSettingsPanel({ settings, onChange, onClose, dark = fa
             onToggle={() => set({ compact: !settings.compact })}
             T={T} font={font}
           />
+
+          {/* ── Column toggles ── */}
+          <SectionLabel icon={<Columns size={10} />} label="Colunas Visíveis" color={T.sectionColor} top={16} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginBottom: 6 }}>
+            {TV_COLUMN_DEFS.map(col => {
+              const hidden = (settings.hiddenColumns ?? []).includes(col.id)
+              return (
+                <button key={col.id} onClick={() => toggleColumn(col.id)} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '9px 12px', borderRadius: 10, border: `1px solid ${T.rowBorder}`,
+                  background: hidden ? T.rowBg : T.rowActiveBg,
+                  cursor: 'pointer', textAlign: 'left',
+                  opacity: hidden ? 0.45 : 1, transition: 'all 0.12s',
+                }}>
+                  <div>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: hidden ? T.text3 : T.text1 }}>{col.label}</p>
+                    <p style={{ fontSize: 11, color: T.text3, marginTop: 1 }}>{col.desc}</p>
+                  </div>
+                  <span style={{ flexShrink: 0, marginLeft: 10, color: hidden ? T.text3 : T.text2 }}>
+                    {hidden ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
 
           {/* ── Status toggles ── */}
           <SectionLabel icon={<Layers size={10} />} label="Exibir Status" color={T.sectionColor} top={16} />

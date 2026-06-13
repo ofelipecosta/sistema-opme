@@ -62,10 +62,22 @@ export async function getAgenda(): Promise<AgendaItem[]> {
   return (data || []).map(r => dbToItem(r as Record<string, unknown>))
 }
 
-export async function upsertAgendaItems(items: AgendaItem[]): Promise<{ added: number; updated: number }> {
+export interface UpsertResult {
+  added: number
+  updated: number
+  details: { acao: 'adicionado' | 'atualizado'; identificador: string; campos?: string[] }[]
+}
+
+export async function upsertAgendaItems(
+  items: AgendaItem[],
+  onProgress?: (pct: number) => void,
+): Promise<UpsertResult> {
+  onProgress?.(5)
   const existing = await getAgenda()
+  onProgress?.(20)
   let added = 0, updated = 0
   const toUpsert: Record<string, unknown>[] = []
+  const details: UpsertResult['details'] = []
 
   for (const item of items) {
     const idx = existing.findIndex(e =>
@@ -76,19 +88,35 @@ export async function upsertAgendaItems(items: AgendaItem[]): Promise<{ added: n
           e.hospital.toLowerCase() === item.hospital.toLowerCase()
     )
     if (idx !== -1) {
-      toUpsert.push(itemToDb({ ...existing[idx], ...item }))
+      const merged = { ...existing[idx] }
+      const changedFields: string[] = []
+      for (const key of Object.keys(item) as (keyof AgendaItem)[]) {
+        const v = item[key]
+        if (v !== '' && v !== null && v !== undefined && key !== 'id') {
+          if (String(existing[idx][key] ?? '') !== String(v)) changedFields.push(key)
+          ;(merged as Record<string, unknown>)[key] = v
+        }
+      }
+      toUpsert.push(itemToDb(merged))
       updated++
+      details.push({ acao: 'atualizado', identificador: item.paciente || item.codigo || '', campos: changedFields })
     } else {
       toUpsert.push(itemToDb({ ...item, id: item.id || genId() }))
       added++
+      details.push({ acao: 'adicionado', identificador: item.paciente || item.codigo || '' })
     }
   }
 
-  if (toUpsert.length > 0) {
-    const { error } = await supabase.from('agenda').upsert(toUpsert, { onConflict: 'id' })
+  onProgress?.(40)
+  const CHUNK = 200
+  const totalChunks = Math.ceil(toUpsert.length / CHUNK) || 1
+  for (let i = 0; i < toUpsert.length; i += CHUNK) {
+    const { error } = await supabase.from('agenda').upsert(toUpsert.slice(i, i + CHUNK), { onConflict: 'id' })
     if (error) { console.error('upsertAgendaItems:', error) }
+    onProgress?.(40 + Math.round(((i / CHUNK + 1) / totalChunks) * 55))
   }
-  return { added, updated }
+  if (!toUpsert.length) onProgress?.(95)
+  return { added, updated, details }
 }
 
 export async function syncRequisitionToAgenda(req: {

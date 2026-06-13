@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Minimize2, RefreshCw, SlidersHorizontal, Play, Pause, Moon, Sun, Activity } from 'lucide-react'
 import { getAgenda } from '../../utils/agenda-storage'
-import TVSettingsPanel, { loadTVSettings, type TVSettings } from './TVSettings'
+import TVSettingsPanel, { loadTVSettings, TV_COLUMN_DEFS, type TVSettings } from './TVSettings'
 import type { AgendaItem } from '../../types/agenda'
 
 interface Props { onExit: () => void }
@@ -144,9 +144,19 @@ const DARK = {
   btnText:     '#EBEBF5',
 }
 
-// Grid: Hora | Hospital | Paciente/Procedimento | Médico | Convênio | Vendedor | Instrumentador | Aut | Status
-const COLS = '88px 1.1fr 1.05fr 0.95fr 0.7fr 0.6fr 0.6fr 36px 148px'
-const COL_HEADS = ['Horário','Hospital','Paciente · Procedimento','Médico','Convênio','Vendedor','Instrumentador','✓','Status']
+// Column width map — keyed by TV_COLUMN_DEFS id
+const COL_WIDTHS: Record<string, string> = {
+  codigo:           '70px',
+  hospital:         '1.1fr',
+  medico:           '0.95fr',
+  convenio:         '0.7fr',
+  cliente:          '0.9fr',
+  vendedor:         '0.6fr',
+  instrumentadores: '0.6fr',
+  autorizada:       '36px',
+}
+// Paciente is always shown — fixed slot after hora
+const PACIENTE_WIDTH = '1.05fr'
 
 const SCROLL_SPEED = 34
 
@@ -162,6 +172,13 @@ export default function TVDashboard({ onExit }: Props) {
   const [settings, setSettings]         = useState<TVSettings>(loadTVSettings)
   const [autoScroll, setAutoScroll]     = useState(true)
   const compact = settings.compact
+  const hiddenCols = settings.hiddenColumns ?? []
+  const vis = (id: string) => !hiddenCols.includes(id)
+
+  // Dynamic grid columns: Hora | Paciente (fixed) | [visible optional cols] | Status
+  const visOptCols = TV_COLUMN_DEFS.filter(c => vis(c.id))
+  const COLS = `88px ${PACIENTE_WIDTH} ${visOptCols.map(c => COL_WIDTHS[c.id] ?? '0.7fr').join(' ')} 148px`
+  const COL_HEADS = ['Horário', 'Paciente · Procedimento', ...visOptCols.map(c => c.label === 'Aut.' ? '✓' : c.label), 'Status']
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const animRef   = useRef<number | null>(null)
@@ -469,18 +486,22 @@ export default function TVDashboard({ onExit }: Props) {
                             </span>
                             {isEmg && <span style={{ display:'block', fontSize:8, fontWeight:700, color:'#FF3B30', marginTop:2, textTransform:'uppercase' }}>⚠ EMERG.</span>}
                           </div>
-                          <GCell text={item.hospital} size={cellSize} weight={600} color={T.text1} />
                           <div style={{ paddingRight:12, minWidth:0 }}>
                             <p style={{ fontSize:cellSize, fontWeight:500, color:T.text1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{item.paciente || '—'}</p>
                             {item.procedimento && <p style={{ fontSize:subSize, color:T.text3, marginTop:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{item.procedimento}</p>}
                           </div>
-                          <GCell text={item.medico}           size={compact ? 10 : 11} color={T.text2} />
-                          <GCell text={item.convenio}         size={compact ? 10 : 11} color={T.text2} wrap />
-                          <GCell text={item.vendedor}         size={compact ? 10 : 11} color={T.text3} />
-                          <GCell text={item.instrumentadores} size={compact ? 9  : 10} color={T.text3} wrap />
-                          <div style={{ display:'flex', alignItems:'center', justifyContent:'center' }}>
-                            {item.autorizada ? <span style={{ fontSize: compact ? 13 : 16, color:'#34C759', fontWeight:700 }}>✓</span> : <span style={{ fontSize:12, color:T.text4 }}>—</span>}
-                          </div>
+                          {vis('codigo')           && <GCell text={item.codigo}         size={compact ? 9  : 10} color={T.text3} />}
+                          {vis('hospital')         && <GCell text={item.hospital}        size={cellSize} weight={600} color={T.text1} />}
+                          {vis('medico')           && <GCell text={item.medico}          size={compact ? 10 : 11} color={T.text2} />}
+                          {vis('convenio')         && <GCell text={item.convenio}        size={compact ? 10 : 11} color={T.text2} wrap />}
+                          {vis('cliente')          && <GCell text={item.cliente}         size={compact ? 10 : 11} color={T.text2} wrap />}
+                          {vis('vendedor')         && <GCell text={item.vendedor}        size={compact ? 10 : 11} color={T.text3} />}
+                          {vis('instrumentadores') && <GCell text={item.instrumentadores} size={compact ? 9 : 10} color={T.text3} wrap />}
+                          {vis('autorizada')       && (
+                            <div style={{ display:'flex', alignItems:'center', justifyContent:'center' }}>
+                              {item.autorizada ? <span style={{ fontSize: compact ? 13 : 16, color:'#34C759', fontWeight:700 }}>✓</span> : <span style={{ fontSize:12, color:T.text4 }}>—</span>}
+                            </div>
+                          )}
                           <div>
                             <span style={{
                               display:'inline-flex', alignItems:'center', gap: compact ? 4 : 6,
