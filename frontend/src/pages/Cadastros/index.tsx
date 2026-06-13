@@ -102,7 +102,7 @@ function InlineRow({ label, sub, onEdit, onDelete, dimmed }: {
         {sub && <p className="text-xs truncate" style={{ color: T.text3 }}>{sub}</p>}
       </div>
       <button onClick={onEdit} className="p-1.5 rounded-lg" style={{ color: T.text3 }}
-        onMouseEnter={e => (e.currentTarget.style.color = '#007AFF')} onMouseLeave={e => (e.currentTarget.style.color = T.text3)}>
+        onMouseEnter={e => (e.currentTarget.style.color = '#2563EB')} onMouseLeave={e => (e.currentTarget.style.color = T.text3)}>
         <Edit2 size={13} />
       </button>
       <button onClick={onDelete} className="p-1.5 rounded-lg" style={{ color: T.text3 }}
@@ -145,7 +145,7 @@ function SectionCard({ icon, title, count, children }: { icon: React.ReactNode; 
   return (
     <div className="rounded-2xl overflow-hidden" style={{ background: T.card, border: `1px solid ${T.cardBorder}`, boxShadow: T.shadow }}>
       <div className="flex items-center gap-2.5 px-4 py-3" style={{ borderBottom: `1px solid ${T.divider}`, background: T.thead }}>
-        <span style={{ color: '#007AFF' }}>{icon}</span>
+        <span style={{ color: '#2563EB' }}>{icon}</span>
         <span className="text-sm font-bold" style={{ color: T.text1 }}>{title}</span>
         <span className="ml-auto text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: T.inputBg, color: T.text3 }}>{count}</span>
       </div>
@@ -202,8 +202,8 @@ function MedicosTab() {
       )}
       {!adding && (
         <button onClick={() => setAdding(true)} className="flex items-center gap-2 w-full px-4 py-3 text-sm font-medium transition-colors"
-          style={{ color: '#007AFF' }}
-          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,122,255,0.05)')}
+          style={{ color: '#2563EB' }}
+          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(37,99,235,0.05)')}
           onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
           <Plus size={14} /> Adicionar médico
         </button>
@@ -214,23 +214,47 @@ function MedicosTab() {
 
 // ─── Hospitais tab ────────────────────────────────────────────────────────────
 
+const HOSP_EMPTY: Omit<Hospital, 'id' | 'ativo' | 'createdAt'> = {
+  nome: '', cidade: '', antecedenciaMinHoras: undefined, horarioLimiteRecebimento: '',
+  recebeSabado: true, recebeDomingo: false, recebeFeriado: false,
+  localEntrega: '', necessitaProtocolo: false, observacoesLogisticas: '',
+}
+
 function HospitaisTab() {
+  const T = useT()
   const [items, setItems] = useState<Hospital[]>([])
-  const [adding, setAdding] = useState(false)
+  const [showModal, setShowModal] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
-  const [nome, setNome] = useState(''); const [cidade, setCidade] = useState('')
+  const [form, setForm] = useState<typeof HOSP_EMPTY>(HOSP_EMPTY)
 
   const load = useCallback(async () => {
     try { setItems(await getHospitais()) } catch {}
   }, [])
   useEffect(() => { load() }, [load])
 
+  function openNew() { setEditId(null); setForm(HOSP_EMPTY); setShowModal(true) }
+  function openEdit(h: Hospital) {
+    setEditId(h.id)
+    setForm({
+      nome: h.nome, cidade: h.cidade || '',
+      antecedenciaMinHoras: h.antecedenciaMinHoras,
+      horarioLimiteRecebimento: h.horarioLimiteRecebimento || '',
+      recebeSabado: h.recebeSabado ?? true,
+      recebeDomingo: h.recebeDomingo ?? false,
+      recebeFeriado: h.recebeFeriado ?? false,
+      localEntrega: h.localEntrega || '',
+      necessitaProtocolo: h.necessitaProtocolo ?? false,
+      observacoesLogisticas: h.observacoesLogisticas || '',
+    })
+    setShowModal(true)
+  }
+
   async function save() {
-    if (!nome.trim()) return
+    if (!form.nome.trim()) { toast.error('Nome obrigatório'); return }
     try {
-      if (editId) { await updateHospital(editId, { nome, cidade }); toast.success('Hospital atualizado') }
-      else { await createHospital(nome, cidade); toast.success('Hospital cadastrado') }
-      reset(); load()
+      if (editId) { await updateHospital(editId, form); toast.success('Hospital atualizado') }
+      else { await createHospital(form); toast.success('Hospital cadastrado') }
+      setShowModal(false); load()
     } catch { toast.error('Erro ao salvar') }
   }
 
@@ -239,33 +263,91 @@ function HospitaisTab() {
     try { await deleteHospital(id); toast.success('Removido'); load() } catch { toast.error('Erro ao remover') }
   }
 
-  function startEdit(h: Hospital) { setEditId(h.id); setNome(h.nome); setCidade(h.cidade || ''); setAdding(true) }
-  function reset() { setAdding(false); setEditId(null); setNome(''); setCidade('') }
+  const set = <K extends keyof typeof HOSP_EMPTY>(k: K, v: typeof HOSP_EMPTY[K]) =>
+    setForm(f => ({ ...f, [k]: v }))
 
   return (
-    <SectionCard icon={<Building2 size={16} />} title="Hospitais" count={items.length}>
-      {items.map(h => (
-        <InlineRow key={h.id} label={h.nome} sub={h.cidade}
-          onEdit={() => startEdit(h)} onDelete={() => del(h.id, h.nome)} />
-      ))}
-      {adding && (
-        <AddRow
-          fields={[
-            { key: 'nome',   placeholder: 'NOME DO HOSPITAL', value: nome,   onChange: setNome   },
-            { key: 'cidade', placeholder: 'Cidade',           value: cidade, onChange: setCidade },
-          ]}
-          onSave={save} onCancel={reset}
-        />
+    <>
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
+          <div className="w-full max-w-xl rounded-2xl p-6 space-y-4 overflow-y-auto max-h-[90vh]"
+            style={{ background: T.card, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-base" style={{ color: T.text1 }}>
+                {editId ? 'Editar' : 'Novo'} Hospital
+              </h3>
+              <button onClick={() => setShowModal(false)} style={{ color: T.text3 }}><X size={18} /></button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="sm:col-span-2">
+                <label className="label">Nome *</label>
+                <input className="input" value={form.nome} onChange={e => set('nome', e.target.value.toUpperCase())} placeholder="NOME DO HOSPITAL" />
+              </div>
+              <div>
+                <label className="label">Cidade</label>
+                <input className="input" value={form.cidade} onChange={e => set('cidade', e.target.value)} placeholder="Cidade" />
+              </div>
+              <div>
+                <label className="label">Local de Entrega</label>
+                <input className="input" value={form.localEntrega} onChange={e => set('localEntrega', e.target.value)} placeholder="Ex: Recepção CC" />
+              </div>
+            </div>
+
+            <div style={{ borderTop: `1px solid ${T.divider}` }} className="pt-3">
+              <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: T.text3 }}>Logística</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="label">Antecedência mínima (horas)</label>
+                  <input className="input" type="number" min={0} value={form.antecedenciaMinHoras ?? ''} onChange={e => set('antecedenciaMinHoras', e.target.value ? Number(e.target.value) : undefined)} placeholder="Ex: 48" />
+                </div>
+                <div>
+                  <label className="label">Horário limite de recebimento</label>
+                  <input className="input" type="time" value={form.horarioLimiteRecebimento} onChange={e => set('horarioLimiteRecebimento', e.target.value)} />
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-4 mt-3">
+                {([['recebeSabado', 'Recebe sábado'], ['recebeDomingo', 'Recebe domingo'], ['recebeFeriado', 'Recebe feriado'], ['necessitaProtocolo', 'Necessita protocolo']] as const).map(([k, lbl]) => (
+                  <label key={k} className="flex items-center gap-2 text-sm cursor-pointer" style={{ color: T.text2 }}>
+                    <input type="checkbox" className="w-4 h-4 rounded" checked={!!form[k]} onChange={e => set(k, e.target.checked)} />
+                    {lbl}
+                  </label>
+                ))}
+              </div>
+              <div className="mt-3">
+                <label className="label">Observações logísticas</label>
+                <textarea className="input resize-none" rows={2} value={form.observacoesLogisticas} onChange={e => set('observacoesLogisticas', e.target.value)} placeholder="Instruções especiais de entrega..." />
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-1">
+              <button onClick={() => setShowModal(false)} className="btn-secondary">Cancelar</button>
+              <button onClick={save} className="btn-primary ml-auto">
+                <Check size={14} /> {editId ? 'Salvar' : 'Criar'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
-      {!adding && (
-        <button onClick={() => setAdding(true)} className="flex items-center gap-2 w-full px-4 py-3 text-sm font-medium transition-colors"
-          style={{ color: '#007AFF' }}
-          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,122,255,0.05)')}
+
+      <SectionCard icon={<Building2 size={16} />} title="Hospitais" count={items.length}>
+        {items.map(h => {
+          const logSub: string[] = []
+          if (h.cidade) logSub.push(h.cidade)
+          if (h.antecedenciaMinHoras) logSub.push(`${h.antecedenciaMinHoras}h antecedência`)
+          return (
+            <InlineRow key={h.id} label={h.nome} sub={logSub.join(' · ')}
+              onEdit={() => openEdit(h)} onDelete={() => del(h.id, h.nome)} />
+          )
+        })}
+        <button onClick={openNew} className="flex items-center gap-2 w-full px-4 py-3 text-sm font-medium transition-colors"
+          style={{ color: '#2563EB' }}
+          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(37,99,235,0.05)')}
           onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
           <Plus size={14} /> Adicionar hospital
         </button>
-      )}
-    </SectionCard>
+      </SectionCard>
+    </>
   )
 }
 
@@ -313,8 +395,8 @@ function ConveniosTab() {
       )}
       {!adding && (
         <button onClick={() => setAdding(true)} className="flex items-center gap-2 w-full px-4 py-3 text-sm font-medium transition-colors"
-          style={{ color: '#007AFF' }}
-          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,122,255,0.05)')}
+          style={{ color: '#2563EB' }}
+          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(37,99,235,0.05)')}
           onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
           <Plus size={14} /> Adicionar convênio
         </button>

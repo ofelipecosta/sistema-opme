@@ -1,14 +1,15 @@
 export interface Permissions {
   nav: {
-    dashboard:      boolean
-    agendamento:    boolean
-    separacao:      boolean
-    controle:       boolean
-    relatorios:     boolean
-    cadastros:      boolean
-    usuarios:       boolean
-    configuracoes:  boolean
-    importar:       boolean
+    dashboard:        boolean
+    agendamento:      boolean
+    separacao:        boolean
+    controle:         boolean
+    relatorios:       boolean
+    cadastros:        boolean
+    instrumentadores: boolean
+    usuarios:         boolean
+    configuracoes:    boolean
+    importar:         boolean
   }
   canCreateRequisition:     boolean
   canEditOwnRequisition:    boolean
@@ -24,7 +25,7 @@ export interface Permissions {
 
 const PERMS: Record<string, Permissions> = {
   admin: {
-    nav: { dashboard:true, agendamento:true, separacao:true, controle:true, relatorios:true, cadastros:true, usuarios:true, configuracoes:true, importar:true },
+    nav: { dashboard:true, agendamento:true, separacao:true, controle:true, relatorios:true, cadastros:true, instrumentadores:true, usuarios:true, configuracoes:true, importar:true },
     canCreateRequisition:     true,
     canEditOwnRequisition:    true,
     canEditAllRequisitions:   true,
@@ -37,7 +38,7 @@ const PERMS: Record<string, Permissions> = {
     landingPath: '/',
   },
   gestor: {
-    nav: { dashboard:true, agendamento:true, separacao:true, controle:true, relatorios:true, cadastros:true, usuarios:false, configuracoes:false, importar:false },
+    nav: { dashboard:true, agendamento:true, separacao:true, controle:true, relatorios:true, cadastros:true, instrumentadores:true, usuarios:false, configuracoes:false, importar:false },
     canCreateRequisition:     true,
     canEditOwnRequisition:    true,
     canEditAllRequisitions:   true,
@@ -50,7 +51,7 @@ const PERMS: Record<string, Permissions> = {
     landingPath: '/',
   },
   estoque: {
-    nav: { dashboard:true, agendamento:false, separacao:true, controle:false, relatorios:false, cadastros:false, usuarios:false, configuracoes:false, importar:false },
+    nav: { dashboard:true, agendamento:false, separacao:true, controle:false, relatorios:false, cadastros:false, instrumentadores:false, usuarios:false, configuracoes:false, importar:false },
     canCreateRequisition:     false,
     canEditOwnRequisition:    false,
     canEditAllRequisitions:   false,
@@ -63,7 +64,7 @@ const PERMS: Record<string, Permissions> = {
     landingPath: '/separacao',
   },
   vendedor: {
-    nav: { dashboard:false, agendamento:true, separacao:false, controle:false, relatorios:false, cadastros:false, usuarios:false, configuracoes:false, importar:false },
+    nav: { dashboard:false, agendamento:true, separacao:false, controle:false, relatorios:false, cadastros:false, instrumentadores:false, usuarios:false, configuracoes:false, importar:false },
     canCreateRequisition:     true,
     canEditOwnRequisition:    true,
     canEditAllRequisitions:   false,
@@ -76,7 +77,7 @@ const PERMS: Record<string, Permissions> = {
     landingPath: '/requisicoes/nova',
   },
   instrumentador: {
-    nav: { dashboard:false, agendamento:true, separacao:false, controle:false, relatorios:false, cadastros:false, usuarios:false, configuracoes:false, importar:false },
+    nav: { dashboard:false, agendamento:true, separacao:false, controle:false, relatorios:false, cadastros:false, instrumentadores:false, usuarios:false, configuracoes:false, importar:false },
     canCreateRequisition:     false,
     canEditOwnRequisition:    false,
     canEditAllRequisitions:   false,
@@ -90,7 +91,7 @@ const PERMS: Record<string, Permissions> = {
   },
   // Legacy — mantém funcionando
   operacional: {
-    nav: { dashboard:true, agendamento:true, separacao:true, controle:false, relatorios:false, cadastros:false, usuarios:false, configuracoes:false, importar:false },
+    nav: { dashboard:true, agendamento:true, separacao:true, controle:false, relatorios:false, cadastros:false, instrumentadores:false, usuarios:false, configuracoes:false, importar:false },
     canCreateRequisition:     true,
     canEditOwnRequisition:    true,
     canEditAllRequisitions:   false,
@@ -103,7 +104,7 @@ const PERMS: Record<string, Permissions> = {
     landingPath: '/',
   },
   consulta: {
-    nav: { dashboard:true, agendamento:true, separacao:false, controle:false, relatorios:false, cadastros:false, usuarios:false, configuracoes:false, importar:false },
+    nav: { dashboard:true, agendamento:true, separacao:false, controle:false, relatorios:false, cadastros:false, instrumentadores:false, usuarios:false, configuracoes:false, importar:false },
     canCreateRequisition:     false,
     canEditOwnRequisition:    false,
     canEditAllRequisitions:   false,

@@ -24,15 +24,15 @@ import type { AgendaItem, AgendaStatus } from '../../types/agenda'
 import type { ControleCirurgia } from '../../types/controle'
 import type { SeparacaoRecord } from '../../types'
 
-/* ─── Apple system colors ──────────────────────────────────────────── */
+/* ─── Operational color palette ───────────────────────────────────── */
 const C = {
-  blue:   '#007AFF', green: '#34C759', teal: '#00C7BE',
-  orange: '#FF9500', red:   '#FF3B30', purple: '#AF52DE',
-  indigo: '#5856D6', yellow: '#FFD60A',
+  blue:   '#2563EB', green: '#16A34A', teal: '#0D9488',
+  orange: '#F59E0B', red:   '#DC2626', purple: '#7C3AED',
+  indigo: '#4F46E5', yellow: '#EAB308',
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  rascunho: '#C7C7CC', enviada: C.blue, em_analise: C.orange,
+  rascunho: '#94A3B8', enviada: C.blue, em_analise: C.orange,
   aprovada: C.green, separacao_material: C.purple,
   material_enviado: C.indigo, finalizada: C.teal, cancelada: C.red,
 }
@@ -410,6 +410,92 @@ function OperationalPipeline({ reqs }: { reqs: import('../../types').Requisition
 }
 
 /* ═══════════════════════════════════════════════════════════════════ */
+/*  PRIORITY PANEL                                                       */
+/* ═══════════════════════════════════════════════════════════════════ */
+function PriorityPanel({
+  agenda, separacoes,
+}: {
+  agenda: AgendaItem[]
+  separacoes: SeparacaoRecord[]
+}) {
+  const T = useT()
+  const navigate = useNavigate()
+
+  const today    = todayStr()
+  const tomorrow = tomorrowStr()
+
+  const sepReqIds = new Set(separacoes.map(s => s.reqId))
+
+  const isTerminal = (s: AgendaStatus) => ['cirurgia_finalizada','cirurgia_faturada','cancelada'].includes(s)
+
+  const priorities = [
+    {
+      emoji: '🔴', label: 'Atrasadas', key: 'atrasadas',
+      color: '#DC2626', bg: 'rgba(220,38,38,0.08)',
+      count: agenda.filter(i => !isTerminal(i.status) && i.data && i.data < today).length,
+      route: '/requisicoes',
+    },
+    {
+      emoji: '🟠', label: 'Saem Hoje', key: 'hoje',
+      color: '#F59E0B', bg: 'rgba(245,158,11,0.08)',
+      count: agenda.filter(i => !isTerminal(i.status) && i.data === today).length,
+      route: '/separacao',
+    },
+    {
+      emoji: '🟡', label: 'Próximas 24h', key: 'amanha',
+      color: '#EAB308', bg: 'rgba(234,179,8,0.08)',
+      count: agenda.filter(i => !isTerminal(i.status) && i.data === tomorrow).length,
+      route: '/requisicoes',
+    },
+    {
+      emoji: '🟢', label: 'Em Dia', key: 'em_dia',
+      color: '#16A34A', bg: 'rgba(22,163,74,0.08)',
+      count: agenda.filter(i => !isTerminal(i.status) && i.data > tomorrow).length,
+      route: '/requisicoes',
+    },
+    {
+      emoji: '🔵', label: 'Ag. Separação', key: 'sep',
+      color: '#2563EB', bg: 'rgba(37,99,235,0.08)',
+      count: agenda.filter(i => ['aprovada','agendada'].includes(i.status) && !sepReqIds.has(i.id) && i.data >= today).length,
+      route: '/separacao',
+    },
+    {
+      emoji: '🟣', label: 'Sem Instr.', key: 'instr',
+      color: '#7C3AED', bg: 'rgba(124,58,237,0.08)',
+      count: agenda.filter(i => !isTerminal(i.status) && !i.instrumentadores && i.data >= today).length,
+      route: '/instrumentadores',
+    },
+  ]
+
+  // Only show if there's any data
+  const total = priorities.reduce((s, p) => s + p.count, 0)
+  if (total === 0) return null
+
+  return (
+    <div className="rounded-2xl overflow-hidden" style={{ background: T.card, border: `1px solid ${T.cardBorder}`, boxShadow: T.shadow }}>
+      <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: `1px solid ${T.divider}` }}>
+        <Zap size={14} style={{ color: C.orange }} />
+        <p className="font-bold text-sm" style={{ color: T.text1 }}>Painel de Prioridades Operacionais</p>
+        <span className="text-xs ml-auto" style={{ color: T.text3 }}>{new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-0.5 p-0.5">
+        {priorities.map(p => (
+          <button key={p.key} onClick={() => navigate(p.route)}
+            className="flex flex-col items-center justify-center gap-1.5 p-4 rounded-xl transition-all group"
+            style={{ background: p.count > 0 ? p.bg : (T.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)') }}
+            onMouseEnter={e => { if (p.count > 0) (e.currentTarget as HTMLElement).style.background = p.bg.replace('0.08','0.15') }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = p.count > 0 ? p.bg : (T.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)') }}>
+            <span className="text-xl leading-none">{p.emoji}</span>
+            <span className="text-2xl font-black leading-none" style={{ color: p.count > 0 ? p.color : T.text3 }}>{p.count}</span>
+            <span className="text-[11px] font-semibold text-center leading-tight" style={{ color: p.count > 0 ? p.color : T.text3 }}>{p.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/* ═══════════════════════════════════════════════════════════════════ */
 /*  SECTION HEADER                                                      */
 /* ═══════════════════════════════════════════════════════════════════ */
 function SectionHeader({ icon, title, subtitle, action }: {
@@ -631,6 +717,9 @@ export default function Dashboard() {
           <StatCard icon={Activity}      label="Eletivas"    value={reqs.filter(r=>r.tipoCirurgia==='eletiva').length} color={C.green}  />
         </div>
       )}
+
+      {/* ── Priority panel ── */}
+      {hasAgenda && <PriorityPanel agenda={agenda} separacoes={separacoes} />}
 
       {/* ── Two-column main layout ── */}
       {hasAgenda ? (

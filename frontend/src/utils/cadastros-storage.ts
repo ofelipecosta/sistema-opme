@@ -13,6 +13,27 @@ export interface Hospital {
   id: string
   nome: string
   cidade?: string
+  antecedenciaMinHoras?: number
+  horarioLimiteRecebimento?: string
+  recebeSabado?: boolean
+  recebeDomingo?: boolean
+  recebeFeriado?: boolean
+  localEntrega?: string
+  necessitaProtocolo?: boolean
+  observacoesLogisticas?: string
+  ativo: boolean
+  createdAt: string
+}
+
+export interface Instrumentador {
+  id: string
+  nome: string
+  telefone?: string
+  whatsapp?: string
+  email?: string
+  cidade?: string
+  especialidade?: string
+  observacoes?: string
   ativo: boolean
   createdAt: string
 }
@@ -79,28 +100,64 @@ export async function deleteMedico(id: string): Promise<void> {
 
 // ─── Hospitais ────────────────────────────────────────────────────────────────
 
+function mapHospital(r: Record<string, unknown>): Hospital {
+  return {
+    id: r.id as string,
+    nome: r.nome as string,
+    cidade: r.cidade as string | undefined,
+    antecedenciaMinHoras: r.antecedencia_min_horas as number | undefined,
+    horarioLimiteRecebimento: r.horario_limite_recebimento as string | undefined,
+    recebeSabado: r.recebe_sabado as boolean | undefined,
+    recebeDomingo: r.recebe_domingo as boolean | undefined,
+    recebeFeriado: r.recebe_feriado as boolean | undefined,
+    localEntrega: r.local_entrega as string | undefined,
+    necessitaProtocolo: r.necessita_protocolo as boolean | undefined,
+    observacoesLogisticas: r.observacoes_logisticas as string | undefined,
+    ativo: r.ativo as boolean,
+    createdAt: r.created_at as string,
+  }
+}
+
 export async function getHospitais(): Promise<Hospital[]> {
   const { data, error } = await supabase
     .from('cadastros_hospitais').select('*').eq('ativo', true).order('nome')
   if (error) throw error
-  return (data ?? []).map(r => ({
-    id: r.id, nome: r.nome, cidade: r.cidade, ativo: r.ativo, createdAt: r.created_at,
-  }))
+  return (data ?? []).map(mapHospital)
 }
 
-export async function createHospital(nome: string, cidade?: string): Promise<Hospital> {
+export async function createHospital(h: Omit<Hospital, 'id' | 'ativo' | 'createdAt'>): Promise<Hospital> {
   const { data, error } = await supabase
     .from('cadastros_hospitais')
-    .insert({ nome: nome.trim().toUpperCase(), cidade: cidade || null, ativo: true })
+    .insert({
+      nome: h.nome.trim().toUpperCase(),
+      cidade: h.cidade || null,
+      antecedencia_min_horas: h.antecedenciaMinHoras ?? null,
+      horario_limite_recebimento: h.horarioLimiteRecebimento || null,
+      recebe_sabado: h.recebeSabado ?? null,
+      recebe_domingo: h.recebeDomingo ?? null,
+      recebe_feriado: h.recebeFeriado ?? null,
+      local_entrega: h.localEntrega || null,
+      necessita_protocolo: h.necessitaProtocolo ?? null,
+      observacoes_logisticas: h.observacoesLogisticas || null,
+      ativo: true,
+    })
     .select().single()
   if (error) throw error
-  return { id: data.id, nome: data.nome, cidade: data.cidade, ativo: data.ativo, createdAt: data.created_at }
+  return mapHospital(data)
 }
 
-export async function updateHospital(id: string, patch: { nome?: string; cidade?: string; ativo?: boolean }): Promise<void> {
+export async function updateHospital(id: string, patch: Partial<Omit<Hospital, 'id' | 'createdAt'>>): Promise<void> {
   const up: Record<string, unknown> = {}
   if (patch.nome !== undefined) up.nome = patch.nome.trim().toUpperCase()
   if (patch.cidade !== undefined) up.cidade = patch.cidade || null
+  if (patch.antecedenciaMinHoras !== undefined) up.antecedencia_min_horas = patch.antecedenciaMinHoras ?? null
+  if (patch.horarioLimiteRecebimento !== undefined) up.horario_limite_recebimento = patch.horarioLimiteRecebimento || null
+  if (patch.recebeSabado !== undefined) up.recebe_sabado = patch.recebeSabado
+  if (patch.recebeDomingo !== undefined) up.recebe_domingo = patch.recebeDomingo
+  if (patch.recebeFeriado !== undefined) up.recebe_feriado = patch.recebeFeriado
+  if (patch.localEntrega !== undefined) up.local_entrega = patch.localEntrega || null
+  if (patch.necessitaProtocolo !== undefined) up.necessita_protocolo = patch.necessitaProtocolo
+  if (patch.observacoesLogisticas !== undefined) up.observacoes_logisticas = patch.observacoesLogisticas || null
   if (patch.ativo !== undefined) up.ativo = patch.ativo
   const { error } = await supabase.from('cadastros_hospitais').update(up).eq('id', id)
   if (error) throw error
@@ -108,6 +165,67 @@ export async function updateHospital(id: string, patch: { nome?: string; cidade?
 
 export async function deleteHospital(id: string): Promise<void> {
   const { error } = await supabase.from('cadastros_hospitais').update({ ativo: false }).eq('id', id)
+  if (error) throw error
+}
+
+// ─── Instrumentadores ─────────────────────────────────────────────────────────
+
+function mapInstrumentador(r: Record<string, unknown>): Instrumentador {
+  return {
+    id: r.id as string,
+    nome: r.nome as string,
+    telefone: r.telefone as string | undefined,
+    whatsapp: r.whatsapp as string | undefined,
+    email: r.email as string | undefined,
+    cidade: r.cidade as string | undefined,
+    especialidade: r.especialidade as string | undefined,
+    observacoes: r.observacoes as string | undefined,
+    ativo: r.ativo as boolean,
+    createdAt: r.created_at as string,
+  }
+}
+
+export async function getInstrumentadores(): Promise<Instrumentador[]> {
+  const { data, error } = await supabase
+    .from('cadastros_instrumentadores').select('*').eq('ativo', true).order('nome')
+  if (error) throw error
+  return (data ?? []).map(mapInstrumentador)
+}
+
+export async function createInstrumentador(i: Omit<Instrumentador, 'id' | 'ativo' | 'createdAt'>): Promise<Instrumentador> {
+  const { data, error } = await supabase
+    .from('cadastros_instrumentadores')
+    .insert({
+      nome: i.nome.trim().toUpperCase(),
+      telefone: i.telefone || null,
+      whatsapp: i.whatsapp || null,
+      email: i.email || null,
+      cidade: i.cidade || null,
+      especialidade: i.especialidade || null,
+      observacoes: i.observacoes || null,
+      ativo: true,
+    })
+    .select().single()
+  if (error) throw error
+  return mapInstrumentador(data)
+}
+
+export async function updateInstrumentador(id: string, patch: Partial<Omit<Instrumentador, 'id' | 'createdAt'>>): Promise<void> {
+  const up: Record<string, unknown> = {}
+  if (patch.nome !== undefined) up.nome = patch.nome.trim().toUpperCase()
+  if (patch.telefone !== undefined) up.telefone = patch.telefone || null
+  if (patch.whatsapp !== undefined) up.whatsapp = patch.whatsapp || null
+  if (patch.email !== undefined) up.email = patch.email || null
+  if (patch.cidade !== undefined) up.cidade = patch.cidade || null
+  if (patch.especialidade !== undefined) up.especialidade = patch.especialidade || null
+  if (patch.observacoes !== undefined) up.observacoes = patch.observacoes || null
+  if (patch.ativo !== undefined) up.ativo = patch.ativo
+  const { error } = await supabase.from('cadastros_instrumentadores').update(up).eq('id', id)
+  if (error) throw error
+}
+
+export async function deleteInstrumentador(id: string): Promise<void> {
+  const { error } = await supabase.from('cadastros_instrumentadores').update({ ativo: false }).eq('id', id)
   if (error) throw error
 }
 

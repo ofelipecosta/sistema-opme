@@ -2,7 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, CalendarDays, Users, BarChart2, Stethoscope,
   X, LogOut, Upload, Settings, Tv, Package, ClipboardList,
-  ChevronDown, PanelLeftClose, PanelLeftOpen, BookOpen,
+  ChevronDown, PanelLeftClose, PanelLeftOpen, BookOpen, UserCheck,
 } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTheme } from '../../contexts/ThemeContext'
@@ -21,7 +21,8 @@ const ALL_MAIN = [
   { to: '/requisicoes', label: 'Agendamento',            icon: CalendarDays,                navKey: 'agendamento' as const },
   { to: '/separacao',   label: 'Separação de Materiais', icon: Package,                     navKey: 'separacao'   as const },
   { to: '/controle',    label: 'Controle de Cirurgias',  icon: ClipboardList,               navKey: 'controle'    as const },
-  { to: '/relatorios',  label: 'Relatórios',             icon: BarChart2,                   navKey: 'relatorios'  as const },
+  { to: '/relatorios',       label: 'Relatórios',            icon: BarChart2,   navKey: 'relatorios'       as const },
+  { to: '/instrumentadores', label: 'Instrumentadores',     icon: UserCheck,   navKey: 'instrumentadores' as const },
 ]
 
 const ALL_CONFIG = [
@@ -73,7 +74,7 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
         {!collapsed && (
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center shadow-sm"
-              style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5AC8FA 100%)' }}>
+              style={{ background: 'linear-gradient(135deg, #2563EB 0%, #60a5fa 100%)' }}>
               <Stethoscope className="w-4 h-4 text-white" />
             </div>
             <div className="leading-none min-w-0">

@@ -11,8 +11,8 @@
   }
   body {
     @apply antialiased;
-    background: #F2F2F7;
-    color: #1D1D1F;
+    background: #F8FAFC;
+    color: #0F172A;
     font-family: -apple-system, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
@@ -27,25 +27,25 @@
   }
   .btn-primary {
     @apply btn text-white shadow-sm;
-    background: #007AFF;
+    background: #2563EB;
   }
-  .btn-primary:hover  { background: #0062cc; }
-  .btn-primary:focus  { box-shadow: 0 0 0 3px rgba(0,122,255,0.25); }
+  .btn-primary:hover  { background: #1d4ed8; }
+  .btn-primary:focus  { box-shadow: 0 0 0 3px rgba(37,99,235,0.25); }
   .btn-secondary {
     @apply btn bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 active:scale-[0.97];
   }
   .btn-danger {
     @apply btn text-white shadow-sm;
-    background: #FF3B30;
+    background: #DC2626;
   }
-  .btn-danger:hover { background: #d92e24; }
-  .btn-danger:focus { box-shadow: 0 0 0 3px rgba(255,59,48,0.25); }
+  .btn-danger:hover { background: #b91c1c; }
+  .btn-danger:focus { box-shadow: 0 0 0 3px rgba(220,38,38,0.25); }
   .btn-success {
     @apply btn text-white shadow-sm;
-    background: #34C759;
+    background: #16A34A;
   }
-  .btn-success:hover { background: #28a046; }
-  .btn-success:focus { box-shadow: 0 0 0 3px rgba(52,199,89,0.25); }
+  .btn-success:hover { background: #15803d; }
+  .btn-success:focus { box-shadow: 0 0 0 3px rgba(22,163,74,0.25); }
   .btn-sm {
     @apply px-3 py-1.5 text-xs rounded-lg;
   }
@@ -209,7 +209,7 @@
 .dark .hover\:bg-red-50\/40:hover    { background: rgba(255,59,48,0.08)   !important; }
 
 /* StepsBar active step */
-.dark .bg-primary-700 { background: #007AFF !important; }
+.dark .bg-primary-700 { background: #2563EB !important; }
 .dark .border-blue-200 { border-color: rgba(59,130,246,0.25) !important; }
 .dark .border-amber-200 { border-color: rgba(245,158,11,0.25) !important; }
 .dark .border-primary-300 { border-color: rgba(59,130,246,0.35) !important; }
