@@ -4,8 +4,7 @@ import {
   Activity, AlertTriangle, CheckCircle2, Clock, FileText,
   Building2, ArrowRight, Plus, CalendarClock,
   Stethoscope, ShieldCheck, Upload, User,
-  Zap, CalendarDays, Package, AlertCircle,
-  ChevronRight, Timer,
+  CalendarDays, Package, AlertCircle, Timer,
 } from 'lucide-react'
 import { getRequisitions } from '../../utils/storage'
 import { getAgenda } from '../../utils/agenda-storage'
@@ -205,116 +204,56 @@ function SurgeryCard({ item, isSeparated, showDate }: { item: AgendaItem; isSepa
 }
 
 /* ═══════════════════════════════════════════════════════════════════ */
-/*  PRIORITY PANEL                                                       */
+/*  KPI GRID — unifica cards de totais + prioridades                    */
 /* ═══════════════════════════════════════════════════════════════════ */
-function PriorityPanel({
-  agenda, separacoes, hospitais,
-}: {
+function KpiGrid({ agenda, separacoes, hospitais, hoje, total, finalizadas, navigate }: {
   agenda: AgendaItem[]
   separacoes: SeparacaoRecord[]
   hospitais: Hospital[]
+  hoje: number
+  total: number
+  finalizadas: number
+  navigate: (path: string) => void
 }) {
-  const T = useT()
-  const navigate = useNavigate()
-
-  const now      = new Date()
-  const today    = todayStr()
-  const sepIds   = new Set(separacoes.flatMap(s => [s.reqId, `req_${s.reqId}`]))
-
-  // Build a name→Hospital map (case-insensitive)
-  const hospMap  = new Map(hospitais.map(h => [h.nome.toLowerCase(), h]))
-
-  // Classify each non-terminal, non-past-day agenda item
-  type Category = 'nao_concluida' | 'critica' | 'prox24h' | 'em_dia' | 'pendente'
-
-  function classify(item: AgendaItem): Category {
-    if (isTerminal(item.status)) return 'pendente' // won't be counted in priority buckets
-    const isSep = sepIds.has(item.id)
-    const hosp  = hospMap.get((item.hospital || '').toLowerCase())
-    const deadline = calcDeadline(item, hosp)
-
-    if (isSep) return 'em_dia'
-
-    if (deadline) {
-      const ms   = deadline.getTime() - now.getTime()
-      const h4   = 4  * 3600_000
-      const h24  = 24 * 3600_000
-      if (ms < 0)        return 'nao_concluida'
-      if (ms < h4)       return 'critica'
-      if (ms < h24)      return 'prox24h'
-    }
-
-    return 'pendente'
-  }
+  const now    = new Date()
+  const sepIds = new Set(separacoes.flatMap(s => [s.reqId, `req_${s.reqId}`]))
+  const hospMap = new Map(hospitais.map(h => [h.nome.toLowerCase(), h]))
 
   const active = agenda.filter(i => !isTerminal(i.status))
 
-  const counts: Record<Category, number> = {
-    nao_concluida: 0, critica: 0, prox24h: 0, em_dia: 0, pendente: 0,
+  let naoConcluidas = 0, criticas = 0, prox24h = 0, emDia = 0, pendentes = active.length
+
+  for (const item of active) {
+    const isSep = sepIds.has(item.id)
+    if (isSep) { emDia++; continue }
+    const hosp     = hospMap.get((item.hospital || '').toLowerCase())
+    const deadline = calcDeadline(item, hosp)
+    if (!deadline) continue
+    const ms  = deadline.getTime() - now.getTime()
+    const h4  = 4  * 3600_000
+    const h24 = 24 * 3600_000
+    if (ms < 0)   naoConcluidas++
+    else if (ms < h4)  criticas++
+    else if (ms < h24) prox24h++
   }
-  for (const item of active) counts[classify(item)]++
 
-  // "Pendentes" = all non-terminal
-  const totalPendentes = active.length
-
-  const priorities = [
-    {
-      key: 'nao_concluida', label: 'Não Concluídas',
-      emoji: '🔴', color: C.red,    bg: 'rgba(220,38,38,0.08)',
-      count: counts.nao_concluida, route: '/separacao',
-      tip: 'Prazo de entrega vencido e material não separado',
-    },
-    {
-      key: 'critica', label: 'Críticas',
-      emoji: '🟠', color: C.orange, bg: 'rgba(245,158,11,0.08)',
-      count: counts.critica, route: '/separacao',
-      tip: 'Prazo vence em menos de 4h',
-    },
-    {
-      key: 'prox24h', label: 'Próximas 24h',
-      emoji: '🟡', color: C.yellow, bg: 'rgba(234,179,8,0.08)',
-      count: counts.prox24h, route: '/separacao',
-      tip: 'Prazo de entrega nas próximas 24h',
-    },
-    {
-      key: 'em_dia', label: 'Em Dia',
-      emoji: '🟢', color: C.green,  bg: 'rgba(22,163,74,0.08)',
-      count: counts.em_dia, route: '/separacao',
-      tip: 'Material já separado',
-    },
-    {
-      key: 'pendente', label: 'Pendentes',
-      emoji: '🔵', color: C.blue,   bg: 'rgba(37,99,235,0.08)',
-      count: totalPendentes, route: '/requisicoes',
-      tip: 'Todas as cirurgias em aberto',
-    },
+  const cards = [
+    { icon: CalendarClock, label: 'Total',           value: total,          color: C.blue,   route: '/requisicoes', pulse: false },
+    { icon: Activity,      label: 'Hoje',            value: hoje,           color: C.green,  route: '/requisicoes', pulse: true  },
+    { icon: AlertCircle,   label: 'Não Concluídas',  value: naoConcluidas,  color: C.red,    route: '/separacao',   pulse: false },
+    { icon: Timer,         label: 'Críticas',        value: criticas,       color: C.orange, route: '/separacao',   pulse: false },
+    { icon: Clock,         label: 'Próximas 24h',    value: prox24h,        color: '#EAB308',route: '/separacao',   pulse: false },
+    { icon: CheckCircle2,  label: 'Em Dia',          value: emDia,          color: C.green,  route: '/separacao',   pulse: false },
+    { icon: Package,       label: 'Pendentes',       value: pendentes,      color: C.purple, route: '/requisicoes', pulse: false },
+    { icon: CheckCircle2,  label: 'Finalizadas',     value: finalizadas,    color: C.teal,   route: '/requisicoes', pulse: false },
   ]
 
-  if (active.length === 0) return null
-
   return (
-    <div className="rounded-2xl overflow-hidden" style={{ background: T.card, border: `1px solid ${T.cardBorder}`, boxShadow: T.shadow }}>
-      <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: `1px solid ${T.divider}` }}>
-        <Zap size={14} style={{ color: C.orange }} />
-        <p className="font-bold text-sm" style={{ color: T.text1 }}>Painel de Prioridades Operacionais</p>
-        <span className="text-xs ml-auto" style={{ color: T.text3 }}>
-          {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-        </span>
-      </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-0.5 p-0.5">
-        {priorities.map(p => (
-          <button key={p.key} onClick={() => navigate(p.route)}
-            title={p.tip}
-            className="flex flex-col items-center justify-center gap-1.5 p-4 rounded-xl transition-all"
-            style={{ background: p.count > 0 ? p.bg : (T.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)') }}
-            onMouseEnter={e => { if (p.count > 0) (e.currentTarget as HTMLElement).style.background = p.bg.replace('0.08','0.15') }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = p.count > 0 ? p.bg : (T.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)') }}>
-            <span className="text-xl leading-none">{p.emoji}</span>
-            <span className="text-2xl font-black leading-none" style={{ color: p.count > 0 ? p.color : T.text3 }}>{p.count}</span>
-            <span className="text-[11px] font-semibold text-center leading-tight" style={{ color: p.count > 0 ? p.color : T.text3 }}>{p.label}</span>
-          </button>
-        ))}
-      </div>
+    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+      {cards.map(c => (
+        <StatCard key={c.label} icon={c.icon} label={c.label} value={c.value}
+          color={c.color} pulse={c.pulse} onClick={() => navigate(c.route)} />
+      ))}
     </div>
   )
 }
@@ -427,28 +366,18 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* ── KPI strip ── */}
+      {/* ── KPI + Prioridades unificados ── */}
       {hasAgenda ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-          <StatCard icon={CalendarClock} label="Total"              value={agendaStats.total}      color={C.blue}   onClick={() => navigate('/requisicoes')} />
-          <StatCard icon={Activity}      label="Hoje"               value={agendaStats.hoje}        color={C.green}  pulse onClick={() => navigate('/requisicoes')} />
-          <StatCard icon={Clock}         label="Pendentes"          value={agendaStats.pendentes}   color={C.orange} onClick={() => navigate('/requisicoes')} />
-          <StatCard icon={Package}       label="Ag. Separação"      value={agendaStats.aguardSep}   color={C.purple} onClick={() => navigate('/separacao')} />
-          <StatCard icon={CheckCircle2}  label="Finalizadas"        value={agendaStats.finalizadas} color={C.teal}   onClick={() => navigate('/requisicoes')} />
-        </div>
+        <KpiGrid agenda={agenda} separacoes={separacoes} hospitais={hospitais}
+          hoje={agendaStats.hoje} total={agendaStats.total} finalizadas={agendaStats.finalizadas}
+          navigate={navigate} />
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-          <StatCard icon={FileText}      label="Total"       value={reqStats.total}                                              color={C.blue}   />
-          <StatCard icon={AlertTriangle} label="Emergências" value={reqs.filter(r=>r.tipoCirurgia==='emergencia').length}        color={C.red}    />
-          <StatCard icon={Clock}         label="Pendentes"   value={reqs.filter(r=>!['finalizada','cancelada'].includes(r.status)).length} color={C.orange} />
-          <StatCard icon={CheckCircle2}  label="Finalizadas" value={reqs.filter(r=>r.status==='finalizada').length}              color={C.teal}   />
-          <StatCard icon={Activity}      label="Eletivas"    value={reqs.filter(r=>r.tipoCirurgia==='eletiva').length}           color={C.green}  />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <StatCard icon={FileText}      label="Total"       value={reqStats.total}                                                         color={C.blue}   />
+          <StatCard icon={AlertTriangle} label="Emergências" value={reqs.filter(r=>r.tipoCirurgia==='emergencia').length}                   color={C.red}    />
+          <StatCard icon={Clock}         label="Pendentes"   value={reqs.filter(r=>!['finalizada','cancelada'].includes(r.status)).length}  color={C.orange} />
+          <StatCard icon={CheckCircle2}  label="Finalizadas" value={reqs.filter(r=>r.status==='finalizada').length}                        color={C.teal}   />
         </div>
-      )}
-
-      {/* ── Priority panel ── */}
-      {hasAgenda && (
-        <PriorityPanel agenda={agenda} separacoes={separacoes} hospitais={hospitais} />
       )}
 
       {/* ── Surgery list ── */}
