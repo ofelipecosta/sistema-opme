@@ -424,7 +424,8 @@ function PriorityPanel({
   const today    = todayStr()
   const tomorrow = tomorrowStr()
 
-  const sepReqIds = new Set(separacoes.map(s => s.reqId))
+  // agenda items synced from requisitions have id = "req_<reqId>"
+  const sepAgendaIds = new Set(separacoes.flatMap(s => [s.reqId, `req_${s.reqId}`]))
 
   const isTerminal = (s: AgendaStatus) => ['cirurgia_finalizada','cirurgia_faturada','cancelada'].includes(s)
 
@@ -456,7 +457,7 @@ function PriorityPanel({
     {
       emoji: '🔵', label: 'Ag. Separação', key: 'sep',
       color: '#2563EB', bg: 'rgba(37,99,235,0.08)',
-      count: agenda.filter(i => ['aprovada','agendada'].includes(i.status) && !sepReqIds.has(i.id) && i.data >= today).length,
+      count: agenda.filter(i => ['aprovada','agendada'].includes(i.status) && !sepAgendaIds.has(i.id) && i.data >= today).length,
       route: '/separacao',
     },
     {
