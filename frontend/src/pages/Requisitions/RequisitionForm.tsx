@@ -184,6 +184,10 @@ export default function RequisitionForm() {
   }
 
   function handleSendClick() {
+    if (fields.length === 0) {
+      toast.error('Adicione ao menos 1 material OPME')
+      return
+    }
     handleSubmit(data => setSummaryData(data))()
   }
 
@@ -242,8 +246,8 @@ export default function RequisitionForm() {
         <input type="hidden" {...register('tipoCirurgia')} />
 
         {/* Paciente */}
-        <MobileField icon={<User className="w-4 h-4" />} label="Paciente">
-          <input className="mobile-input uppercase" {...register('pacienteNome')} onInput={toUpper}
+        <MobileField icon={<User className="w-4 h-4" />} label="Paciente" required error={errors.pacienteNome?.message}>
+          <input className="mobile-input uppercase" {...register('pacienteNome', { required: 'Informe o nome do paciente' })} onInput={toUpper}
             placeholder="Nome do paciente" />
         </MobileField>
 
@@ -302,7 +306,7 @@ export default function RequisitionForm() {
         )}
 
         {/* Convênio — autocomplete */}
-        <MobileField icon={<ShieldCheck className="w-4 h-4" />} label="Convênio">
+        <MobileField icon={<ShieldCheck className="w-4 h-4" />} label="Convênio" required error={errors.cirurgiaConvenio?.message}>
           <AutocompleteInput
             value={watch('cirurgiaConvenio') || ''}
             onChange={v => setValue('cirurgiaConvenio', v)}
@@ -318,6 +322,7 @@ export default function RequisitionForm() {
               } catch { toast.error('Erro ao cadastrar convênio'); return null }
             }}
           />
+          <input type="hidden" {...register('cirurgiaConvenio', { required: 'Informe o convênio' })} />
         </MobileField>
 
         {/* Data + Horário */}
@@ -327,8 +332,8 @@ export default function RequisitionForm() {
             return <DatePickerField label="Data" required error={errors.cirurgiaData?.message} min={today} fieldProps={f} />
           })()}
           {(() => {
-            const f = register('cirurgiaHorario')
-            return <TimePickerField label="Horário" fieldProps={f} />
+            const f = register('cirurgiaHorario', { required: 'Informe o horário' })
+            return <TimePickerField label="Horário" required error={errors.cirurgiaHorario?.message} fieldProps={f} />
           })()}
         </div>
 
@@ -653,17 +658,19 @@ function DatePickerField({ label, required, error, min, fieldProps }: { label: s
   )
 }
 
-function TimePickerField({ label = 'Horário', fieldProps }: { label?: string; fieldProps: FieldProps }) {
+function TimePickerField({ label = 'Horário', required, error, fieldProps }: { label?: string; required?: boolean; error?: string; fieldProps: FieldProps }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [val, setVal] = useState('')
   return (
     <div className="rounded-2xl overflow-hidden cursor-pointer"
-      style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.10)', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}
+      style={{ background: '#fff', border: error ? '1.5px solid #FF3B30' : '1px solid rgba(0,0,0,0.10)', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}
       onClick={() => inputRef.current?.showPicker?.()}>
       <div className="px-4 pt-3 pb-3">
         <div className="flex items-center gap-2 mb-1.5">
           <Clock className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#007AFF' }} />
-          <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#8E8E93' }}>{label}</span>
+          <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#8E8E93' }}>
+            {label}{required && <span style={{ color: '#FF3B30' }}> *</span>}
+          </span>
         </div>
         <p className="text-sm font-semibold" style={{ color: val ? '#1D1D1F' : '#AEAEB2' }}>{val || '--:--'}</p>
       </div>
@@ -672,6 +679,7 @@ function TimePickerField({ label = 'Horário', fieldProps }: { label?: string; f
         onChange={e => { setVal(e.target.value); fieldProps.onChange(e) }}
         onBlur={fieldProps.onBlur}
         className="absolute opacity-0 pointer-events-none" style={{ fontSize: 16 }} />
+      {error && <p className="px-4 pb-2 text-xs" style={{ color: '#FF3B30' }}>{error}</p>}
     </div>
   )
 }
