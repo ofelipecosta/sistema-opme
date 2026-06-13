@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
+import { useNavigate } from 'react-router-dom'
 import {
   Plus, Trash2, Edit2, Check, X, Search, Phone, Mail,
   MapPin, Stethoscope, Users, Calendar, TrendingUp,
@@ -81,6 +82,7 @@ function SurgeryPanel({
   onClose: () => void
 }) {
   const T = useT()
+  const navigate = useNavigate()
   const [filter, setFilter] = useState<'all' | 'upcoming' | 'past'>('upcoming')
   const today = todayStr()
 
@@ -160,14 +162,23 @@ function SurgeryPanel({
               const isPast = s.data < today
               const isToday = s.data === today
               return (
-                <div key={s.id || i} className="rounded-xl p-3.5 flex items-start gap-3"
+                <button key={s.id || i}
+                  onClick={() => {
+                    const reqId = s.id?.startsWith('req_') ? s.id.replace('req_', '') : null
+                    if (reqId) { onClose(); navigate(`/requisicoes/${reqId}`) }
+                  }}
+                  className="w-full text-left rounded-xl p-3.5 flex items-start gap-3 transition-colors"
                   style={{
                     background: isToday
                       ? 'rgba(37,99,235,0.06)'
                       : isPast ? (T.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)')
                       : T.inputBg,
                     border: `1px solid ${isToday ? 'rgba(37,99,235,0.2)' : T.cardBorder}`,
-                  }}>
+                    cursor: s.id?.startsWith('req_') ? 'pointer' : 'default',
+                  }}
+                  onMouseEnter={e => { if (s.id?.startsWith('req_')) (e.currentTarget as HTMLElement).style.background = isToday ? 'rgba(37,99,235,0.12)' : (T.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)') }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = isToday ? 'rgba(37,99,235,0.06)' : isPast ? (T.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)') : T.inputBg }}
+                >
                   {/* Date block */}
                   <div className="text-center flex-shrink-0 w-14">
                     <p className="text-xs font-bold" style={{ color: isToday ? '#2563EB' : T.text3 }}>
@@ -214,8 +225,10 @@ function SurgeryPanel({
                     </div>
                   </div>
 
-                  <ChevronRight className="w-3.5 h-3.5 flex-shrink-0 mt-1" style={{ color: T.text3 }} />
-                </div>
+                  {s.id?.startsWith('req_') && (
+                    <ChevronRight className="w-3.5 h-3.5 flex-shrink-0 mt-1" style={{ color: T.text3 }} />
+                  )}
+                </button>
               )
             })
           )}
