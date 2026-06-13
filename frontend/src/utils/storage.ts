@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase'
+import { deleteAnexo } from './cadastros-storage'
 import type { User, Requisition } from '../types'
 
 // ─── session (still localStorage — per-browser) ──────────────────────────────
@@ -309,7 +310,20 @@ export async function updateRequisition(
 
 export async function deleteRequisition(id: string, user: User): Promise<boolean> {
   const now = new Date().toISOString()
-  const { data: current } = await supabase.from('requisicoes').select('auditoria').eq('id', id).single()
+  const { data: current } = await supabase
+    .from('requisicoes')
+    .select('auditoria, anexos')
+    .eq('id', id)
+    .single()
+
+  // Delete files from Storage before soft-deleting the record
+  const anexos = (current?.anexos as { url: string }[] | null) ?? []
+  for (const a of anexos) {
+    if (a.url && !a.url.startsWith('http')) {
+      try { await deleteAnexo(a.url) } catch { /* ignore individual failures */ }
+    }
+  }
+
   const auditoria = [...((current?.auditoria as unknown[]) || []), {
     id:           genAuditId(),
     requisicaoId: id,
