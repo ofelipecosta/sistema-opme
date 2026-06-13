@@ -1,7 +1,9 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import {
   Plus, Trash2, Edit2, Check, X, Search, Phone, Mail,
   MapPin, Stethoscope, Users, Calendar, TrendingUp,
+  Building2, ChevronRight, ArrowLeft, ListChecks,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useTheme } from '../../contexts/ThemeContext'
@@ -11,6 +13,7 @@ import {
 } from '../../utils/cadastros-storage'
 import { getAgenda } from '../../utils/agenda-storage'
 import { ESPECIALIDADE_OPTIONS } from '../../utils/helpers'
+import type { AgendaItem } from '../../types/agenda'
 
 function useT() {
   const { isDark } = useTheme()
@@ -43,22 +46,207 @@ const EMPTY: Omit<Instrumentador, 'id' | 'ativo' | 'createdAt'> = {
   nome: '', telefone: '', whatsapp: '', email: '', cidade: '', especialidade: '', observacoes: '',
 }
 
+// ─── Status label/color helpers ───────────────────────────────────────────────
+function statusLabel(s: string) {
+  const map: Record<string, string> = {
+    agendada: 'Agendada', nova_cirurgia: 'Nova', confirmada: 'Confirmada',
+    aprovada: 'Autorizada', em_preparo: 'Em Preparo', material_separado: 'Mat. Separado',
+    aguardando_cirurgia: 'Aguardando', em_cirurgia: 'Em Cirurgia',
+    cirurgia_finalizada: 'Finalizada', cirurgia_faturada: 'Faturada', cancelada: 'Cancelada',
+  }
+  return map[s] || s
+}
+function statusColor(s: string) {
+  const map: Record<string, string> = {
+    agendada: 'bg-blue-50 text-blue-600', nova_cirurgia: 'bg-blue-50 text-blue-600',
+    confirmada: 'bg-teal-50 text-teal-600', aprovada: 'bg-green-50 text-green-700',
+    em_preparo: 'bg-amber-50 text-amber-600', material_separado: 'bg-violet-50 text-violet-600',
+    aguardando_cirurgia: 'bg-orange-50 text-orange-600', em_cirurgia: 'bg-indigo-50 text-indigo-600',
+    cirurgia_finalizada: 'bg-slate-100 text-slate-500', cirurgia_faturada: 'bg-slate-100 text-slate-500',
+    cancelada: 'bg-red-50 text-red-500',
+  }
+  return map[s] || 'bg-slate-100 text-slate-500'
+}
+function formatDate(s: string) {
+  if (!s) return '-'
+  const [y, m, d] = s.split('-')
+  return `${d}/${m}/${y}`
+}
+
+// ─── Surgery detail panel ─────────────────────────────────────────────────────
+function SurgeryPanel({
+  inst, surgeries, onClose,
+}: {
+  inst: Instrumentador
+  surgeries: AgendaItem[]
+  onClose: () => void
+}) {
+  const T = useT()
+  const [filter, setFilter] = useState<'all' | 'upcoming' | 'past'>('upcoming')
+  const today = todayStr()
+
+  const filtered = useMemo(() => {
+    const sorted = [...surgeries].sort((a, b) => {
+      const da = `${a.data}${a.horaCirurgia}`
+      const db = `${b.data}${b.horaCirurgia}`
+      return da.localeCompare(db)
+    })
+    if (filter === 'upcoming') return sorted.filter(s => s.data >= today)
+    if (filter === 'past') return sorted.filter(s => s.data < today)
+    return sorted
+  }, [surgeries, filter, today])
+
+  const tabs: { key: typeof filter; label: string; count: number }[] = [
+    { key: 'upcoming', label: 'Próximas', count: surgeries.filter(s => s.data >= today).length },
+    { key: 'past',     label: 'Realizadas', count: surgeries.filter(s => s.data < today).length },
+    { key: 'all',      label: 'Todas', count: surgeries.length },
+  ]
+
+  const panel = (
+    <div className="fixed inset-0 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.55)', zIndex: 9999 }}
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      <div className="w-full max-w-2xl flex flex-col rounded-2xl overflow-hidden"
+        style={{ background: T.card, boxShadow: '0 24px 80px rgba(0,0,0,0.35)', maxHeight: '90vh' }}>
+
+        {/* Header */}
+        <div className="flex items-center gap-3 px-5 py-4 flex-shrink-0"
+          style={{ borderBottom: `1px solid ${T.divider}` }}>
+          <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: T.text3 }}>
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
+            style={{ background: 'linear-gradient(135deg, #2563EB, #60a5fa)' }}>
+            {inst.nome.charAt(0)}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-sm leading-tight truncate" style={{ color: T.text1 }}>{inst.nome}</p>
+            <p className="text-xs mt-0.5" style={{ color: T.text3 }}>
+              {[inst.especialidade, inst.cidade].filter(Boolean).join(' · ')}
+            </p>
+          </div>
+          <button onClick={onClose} style={{ color: T.text3 }}>
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex px-5 pt-3 gap-1 flex-shrink-0">
+          {tabs.map(t => (
+            <button key={t.key} onClick={() => setFilter(t.key)}
+              className="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5"
+              style={filter === t.key
+                ? { background: '#2563EB', color: '#fff' }
+                : { color: T.text2, background: T.inputBg }
+              }>
+              {t.label}
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                style={{ background: filter === t.key ? 'rgba(255,255,255,0.25)' : T.cardBorder }}>
+                {t.count}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {/* List */}
+        <div className="overflow-y-auto flex-1 p-3 space-y-2">
+          {filtered.length === 0 ? (
+            <div className="text-center py-12">
+              <Calendar className="w-8 h-8 mx-auto mb-2" style={{ color: T.text3, opacity: 0.5 }} />
+              <p className="text-sm font-medium" style={{ color: T.text2 }}>
+                {filter === 'upcoming' ? 'Nenhuma cirurgia próxima' : filter === 'past' ? 'Nenhuma cirurgia realizada' : 'Nenhuma cirurgia registrada'}
+              </p>
+            </div>
+          ) : (
+            filtered.map((s, i) => {
+              const isPast = s.data < today
+              const isToday = s.data === today
+              return (
+                <div key={s.id || i} className="rounded-xl p-3.5 flex items-start gap-3"
+                  style={{
+                    background: isToday
+                      ? 'rgba(37,99,235,0.06)'
+                      : isPast ? (T.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)')
+                      : T.inputBg,
+                    border: `1px solid ${isToday ? 'rgba(37,99,235,0.2)' : T.cardBorder}`,
+                  }}>
+                  {/* Date block */}
+                  <div className="text-center flex-shrink-0 w-14">
+                    <p className="text-xs font-bold" style={{ color: isToday ? '#2563EB' : T.text3 }}>
+                      {isToday ? 'HOJE' : formatDate(s.data)}
+                    </p>
+                    <p className="text-base font-black leading-tight mt-0.5 font-mono"
+                      style={{ color: isToday ? '#2563EB' : isPast ? T.text3 : T.text1 }}>
+                      {s.horaCirurgia || '--:--'}
+                    </p>
+                  </div>
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <p className="font-semibold text-sm truncate" style={{ color: isPast ? T.text2 : T.text1 }}>
+                        {s.paciente || 'Paciente não informado'}
+                      </p>
+                      {s.emergencia && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-500 text-white">EMERG</span>
+                      )}
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${statusColor(s.status)}`}>
+                        {statusLabel(s.status)}
+                      </span>
+                    </div>
+                    <div className="space-y-0.5">
+                      {s.hospital && (
+                        <div className="flex items-center gap-1.5 text-xs" style={{ color: T.text3 }}>
+                          <Building2 className="w-3 h-3 flex-shrink-0" />
+                          <span className="truncate">{s.hospital}</span>
+                        </div>
+                      )}
+                      {s.procedimento && (
+                        <div className="flex items-center gap-1.5 text-xs" style={{ color: T.text3 }}>
+                          <Stethoscope className="w-3 h-3 flex-shrink-0" />
+                          <span className="truncate">{s.procedimento}</span>
+                        </div>
+                      )}
+                      {s.medico && (
+                        <div className="flex items-center gap-1.5 text-xs" style={{ color: T.text3 }}>
+                          <Users className="w-3 h-3 flex-shrink-0" />
+                          <span className="truncate">Dr(a). {s.medico}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <ChevronRight className="w-3.5 h-3.5 flex-shrink-0 mt-1" style={{ color: T.text3 }} />
+                </div>
+              )
+            })
+          )}
+        </div>
+      </div>
+    </div>
+  )
+  return createPortal(panel, document.body)
+}
+
+// ─── Main page ────────────────────────────────────────────────────────────────
 export default function InstrumentadoresPage() {
   const T = useT()
-  const [items, setItems]       = useState<Instrumentador[]>([])
-  const [workload, setWorkload]  = useState<Record<string, WorkloadMap>>({})
-  const [search, setSearch]      = useState('')
-  const [editId, setEditId]      = useState<string | null>(null)
-  const [form, setForm]          = useState<typeof EMPTY>(EMPTY)
-  const [showForm, setShowForm]  = useState(false)
-  const [loading, setLoading]    = useState(true)
-  const [activeTab, setActiveTab] = useState<WorkloadKey>('mes')
+  const [items, setItems]           = useState<Instrumentador[]>([])
+  const [agendaItems, setAgendaItems] = useState<AgendaItem[]>([])
+  const [workload, setWorkload]     = useState<Record<string, WorkloadMap>>({})
+  const [search, setSearch]         = useState('')
+  const [editId, setEditId]         = useState<string | null>(null)
+  const [form, setForm]             = useState<typeof EMPTY>(EMPTY)
+  const [showForm, setShowForm]     = useState(false)
+  const [selectedInst, setSelectedInst] = useState<Instrumentador | null>(null)
+  const [loading, setLoading]       = useState(true)
+  const [activeTab, setActiveTab]   = useState<WorkloadKey>('mes')
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
       const [insts, agenda] = await Promise.all([getInstrumentadores(), getAgenda()])
       setItems(insts)
+      setAgendaItems(agenda)
 
       const today   = new Date(); today.setHours(0,0,0,0)
       const todayS  = todayStr()
@@ -91,13 +279,21 @@ export default function InstrumentadoresPage() {
     (i.cidade || '').toLowerCase().includes(search.toLowerCase())
   )
 
+  // Get surgeries for selected instrumentador
+  const selectedSurgeries = useMemo(() => {
+    if (!selectedInst) return []
+    const name = selectedInst.nome.toLowerCase()
+    return agendaItems.filter(a => (a.instrumentadores || '').toLowerCase().includes(name))
+  }, [selectedInst, agendaItems])
+
   function openNew() {
     setEditId(null)
     setForm(EMPTY)
     setShowForm(true)
   }
 
-  function openEdit(i: Instrumentador) {
+  function openEdit(i: Instrumentador, e: React.MouseEvent) {
+    e.stopPropagation()
     setEditId(i.id)
     setForm({ nome: i.nome, telefone: i.telefone || '', whatsapp: i.whatsapp || '', email: i.email || '', cidade: i.cidade || '', especialidade: i.especialidade || '', observacoes: i.observacoes || '' })
     setShowForm(true)
@@ -125,7 +321,8 @@ export default function InstrumentadoresPage() {
     }
   }
 
-  async function onDelete(id: string, nome: string) {
+  async function onDelete(id: string, nome: string, e: React.MouseEvent) {
+    e.stopPropagation()
     if (!confirm(`Desativar ${nome}?`)) return
     await deleteInstrumentador(id)
     toast.success('Instrumentador removido')
@@ -133,14 +330,24 @@ export default function InstrumentadoresPage() {
   }
 
   const workloadTabs: { key: WorkloadKey; label: string }[] = [
-    { key: 'hoje',   label: 'Hoje' },
-    { key: 'semana', label: '7 dias' },
-    { key: 'mes',    label: '30 dias' },
+    { key: 'hoje',    label: 'Hoje' },
+    { key: 'semana',  label: '7 dias' },
+    { key: 'mes',     label: '30 dias' },
     { key: 'noventa', label: '90 dias' },
   ]
 
   return (
     <div className="space-y-5">
+
+      {/* Surgery panel — rendered via Portal above all layout layers */}
+      {selectedInst && (
+        <SurgeryPanel
+          inst={selectedInst}
+          surgeries={selectedSurgeries}
+          onClose={() => setSelectedInst(null)}
+        />
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
@@ -155,15 +362,12 @@ export default function InstrumentadoresPage() {
       {/* Workload period tabs */}
       <div className="flex gap-1 p-1 rounded-xl w-fit" style={{ background: T.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)' }}>
         {workloadTabs.map(t => (
-          <button
-            key={t.key}
-            onClick={() => setActiveTab(t.key)}
+          <button key={t.key} onClick={() => setActiveTab(t.key)}
             className="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all"
             style={activeTab === t.key
               ? { background: '#2563EB', color: '#fff', boxShadow: '0 1px 4px rgba(37,99,235,0.3)' }
               : { color: T.text2 }
-            }
-          >
+            }>
             {t.label}
           </button>
         ))}
@@ -172,15 +376,11 @@ export default function InstrumentadoresPage() {
       {/* Search */}
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: T.text3 }} />
-        <input
-          className="input pl-9"
-          placeholder="Buscar instrumentador..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
+        <input className="input pl-9" placeholder="Buscar instrumentador..."
+          value={search} onChange={e => setSearch(e.target.value)} />
       </div>
 
-      {/* Form modal */}
+      {/* Edit/Create form modal */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
           <div className="w-full max-w-lg rounded-2xl p-6 space-y-4" style={{ background: T.card, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
@@ -231,7 +431,7 @@ export default function InstrumentadoresPage() {
         </div>
       )}
 
-      {/* List */}
+      {/* Cards list */}
       {loading ? (
         <div className="flex justify-center py-16">
           <div className="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
@@ -254,11 +454,13 @@ export default function InstrumentadoresPage() {
             const intensityBg   = { low: 'rgba(22,163,74,0.10)', medium: 'rgba(37,99,235,0.10)', high: 'rgba(245,158,11,0.10)', critical: 'rgba(220,38,38,0.10)' }[intensity]
 
             return (
-              <div
-                key={inst.id}
-                className="rounded-2xl p-4 flex flex-col gap-3"
+              <div key={inst.id}
+                onClick={() => setSelectedInst(inst)}
+                className="rounded-2xl p-4 flex flex-col gap-3 cursor-pointer transition-all"
                 style={{ background: T.card, border: `1px solid ${T.cardBorder}`, boxShadow: T.shadow }}
-              >
+                onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-1px)')}
+                onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}>
+
                 {/* Header row */}
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-white font-bold text-sm"
@@ -273,11 +475,9 @@ export default function InstrumentadoresPage() {
                       </p>
                     )}
                   </div>
-                  {/* Workload badge */}
                   <div className="rounded-lg px-2.5 py-1 text-xs font-bold flex items-center gap-1 flex-shrink-0"
                     style={{ background: intensityBg, color: intensityColor }}>
-                    <Calendar className="w-3 h-3" />
-                    {count}
+                    <Calendar className="w-3 h-3" />{count}
                   </div>
                 </div>
 
@@ -303,7 +503,8 @@ export default function InstrumentadoresPage() {
                 {/* Mini workload bar */}
                 <div className="grid grid-cols-4 gap-1 text-center">
                   {workloadTabs.map(t => (
-                    <div key={t.key} className="rounded-lg py-1" style={{ background: activeTab === t.key ? intensityBg : (T.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)') }}>
+                    <div key={t.key} className="rounded-lg py-1"
+                      style={{ background: activeTab === t.key ? intensityBg : (T.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)') }}>
                       <div className="text-xs font-bold" style={{ color: activeTab === t.key ? intensityColor : T.text2 }}>{wl[t.key]}</div>
                       <div className="text-[10px]" style={{ color: T.text3 }}>{t.label}</div>
                     </div>
@@ -316,10 +517,15 @@ export default function InstrumentadoresPage() {
 
                 {/* Actions */}
                 <div className="flex gap-2 pt-1" style={{ borderTop: `1px solid ${T.divider}` }}>
-                  <button onClick={() => openEdit(inst)} className="btn-secondary btn-sm flex-1">
-                    <Edit2 className="w-3 h-3" /> Editar
+                  <button
+                    onClick={e => { e.stopPropagation(); setSelectedInst(inst) }}
+                    className="btn-primary btn-sm flex-1">
+                    <ListChecks className="w-3 h-3" /> Ver cirurgias
                   </button>
-                  <button onClick={() => onDelete(inst.id, inst.nome)} className="btn-danger btn-sm">
+                  <button onClick={e => openEdit(inst, e)} className="btn-secondary btn-sm">
+                    <Edit2 className="w-3 h-3" />
+                  </button>
+                  <button onClick={e => onDelete(inst.id, inst.nome, e)} className="btn-danger btn-sm">
                     <Trash2 className="w-3 h-3" />
                   </button>
                 </div>
@@ -329,7 +535,6 @@ export default function InstrumentadoresPage() {
         </div>
       )}
 
-      {/* SQL helper */}
       <SqlHelper />
     </div>
   )
