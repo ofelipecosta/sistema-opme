@@ -22,8 +22,9 @@ import {
   getHospitais, createHospital,
   getConvenios, createConvenio,
   getProcedimentos, createProcedimento,
+  getInstrumentadores, createInstrumentador,
   getKitItems, uploadAnexo,
-  type Medico, type Hospital, type Convenio, type Procedimento, type KitItem,
+  type Medico, type Hospital, type Convenio, type Procedimento, type KitItem, type Instrumentador,
 } from '../../utils/cadastros-storage'
 
 type FormValues = Omit<Requisition, 'id'|'numero'|'status'|'datasolicitacao'|'solicitanteId'|'solicitanteNome'|'anexos'|'auditoria'|'createdAt'|'updatedAt'>
@@ -51,12 +52,13 @@ export default function RequisitionForm() {
   const [savedReq, setSavedReq]     = useState<Requisition | null>(null)
 
   // Cadastros
-  const [medicos,      setMedicos]      = useState<Medico[]>([])
-  const [hospitais,    setHospitais]    = useState<Hospital[]>([])
-  const [convenios,    setConvenios]    = useState<Convenio[]>([])
-  const [procedimentos,setProcedimentos]= useState<Procedimento[]>([])
-  const [kitItems,     setKitItems]     = useState<KitItem[]>([])
-  const [selectedProcId, setSelectedProcId] = useState<string | null>(null)
+  const [medicos,          setMedicos]          = useState<Medico[]>([])
+  const [hospitais,        setHospitais]        = useState<Hospital[]>([])
+  const [convenios,        setConvenios]        = useState<Convenio[]>([])
+  const [procedimentos,    setProcedimentos]    = useState<Procedimento[]>([])
+  const [instrumentadores, setInstrumentadores] = useState<Instrumentador[]>([])
+  const [kitItems,         setKitItems]         = useState<KitItem[]>([])
+  const [selectedProcId,   setSelectedProcId]   = useState<string | null>(null)
 
   // Files
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([])
@@ -82,6 +84,7 @@ export default function RequisitionForm() {
       getHospitais().then(setHospitais).catch(() => {}),
       getConvenios().then(setConvenios).catch(() => {}),
       getProcedimentos().then(setProcedimentos).catch(() => {}),
+      getInstrumentadores().then(setInstrumentadores).catch(() => {}),
     ])
   }, [])
 
@@ -339,7 +342,7 @@ export default function RequisitionForm() {
             allowCreate
             onCreateNew={async nome => {
               try {
-                const h = await createHospital(nome)
+                const h = await createHospital({ nome })
                 setHospitais(prev => [...prev, h].sort((a, b) => a.nome.localeCompare(b.nome)))
                 toast.success('Hospital cadastrado')
                 return { id: h.id, nome: h.nome }
@@ -347,6 +350,30 @@ export default function RequisitionForm() {
             }}
           />
           <input type="hidden" {...register('hospitalNome', { required: 'Informe o hospital' })} />
+        </MobileField>
+
+        {/* Instrumentador */}
+        <MobileField icon={<User className="w-4 h-4" />} label="Instrumentador">
+          <AutocompleteInput
+            value={watch('instrumentadorNome') || ''}
+            onChange={v => setValue('instrumentadorNome', v)}
+            onSelect={opt => {
+              setValue('instrumentadorNome', opt.nome)
+              const inst = instrumentadores.find(i => i.id === opt.id)
+              if (inst?.telefone) setValue('instrumentadorTelefone', inst.telefone)
+            }}
+            options={instrumentadores.map(i => ({ id: i.id, nome: i.nome, sub: [i.especialidade, i.cidade].filter(Boolean).join(' · ') }))}
+            placeholder="NOME DO INSTRUMENTADOR"
+            allowCreate
+            onCreateNew={async nome => {
+              try {
+                const inst = await createInstrumentador({ nome })
+                setInstrumentadores(prev => [...prev, inst].sort((a, b) => a.nome.localeCompare(b.nome)))
+                toast.success('Instrumentador cadastrado')
+                return { id: inst.id, nome: inst.nome }
+              } catch { toast.error('Erro ao cadastrar instrumentador'); return null }
+            }}
+          />
         </MobileField>
 
         {/* Materiais OPME */}
@@ -441,7 +468,7 @@ export default function RequisitionForm() {
           onClick={handleSendClick}
           disabled={saving}
           className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-bold transition-all active:scale-[0.97] disabled:opacity-50 text-white shadow-md"
-          style={{ background: isEmergency ? '#FF3B30' : '#007AFF' }}
+          style={{ background: isEmergency ? '#DC2626' : '#2563EB' }}
         >
           <CalendarDays className="w-4 h-4" />
           {saving ? 'Salvando…' : 'Agendar'}
@@ -485,7 +512,7 @@ function SuccessModal({ req, onShare, onClose }: { req: Requisition; onShare: ()
         <div className="px-6 pb-6 pt-3 flex flex-col gap-2">
           <button onClick={() => { onShare(); onClose() }}
             className="w-full py-3.5 rounded-2xl text-white text-sm font-bold flex items-center justify-center gap-2 active:scale-[0.97] transition-all"
-            style={{ background: '#007AFF' }}>
+            style={{ background: '#2563EB' }}>
             {isEmergency ? <MessageCircle className="w-4 h-4" /> : <Mail className="w-4 h-4" />}
             {isEmergency ? 'Enviar por WhatsApp' : 'Enviar por E-mail'}
           </button>
@@ -566,7 +593,7 @@ function SummaryModal({ data, isEmergency, onConfirm, onCancel, saving, fileCoun
         <div className="px-5 pb-5 flex flex-col gap-2">
           <button onClick={onConfirm} disabled={saving}
             className="w-full py-3.5 rounded-2xl text-white text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50 transition-all active:scale-[0.97]"
-            style={{ background: '#007AFF' }}>
+            style={{ background: '#2563EB' }}>
             {saving ? 'Salvando…' : isEmergency ? <><MessageCircle className="w-4 h-4" /> Salvar e Enviar por WhatsApp</> : <><Mail className="w-4 h-4" /> Salvar e Enviar por E-mail</>}
           </button>
           <button onClick={onCancel} className="w-full py-3 rounded-2xl text-sm font-medium transition-colors active:scale-[0.97]" style={{ background: 'rgba(0,0,0,0.05)', color: '#48484A' }}>
