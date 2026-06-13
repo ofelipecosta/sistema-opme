@@ -28,7 +28,8 @@ import {
   getSeparacoes, getSeparacaoByReq, getHistoricoSeparacao, registrarSeparacao,
 } from '../../utils/separacao-storage'
 import { emailSeparacaoConfirmada } from '../../utils/email-service'
-import type { Requisition, OPMEItem, SeparacaoRecord } from '../../types'
+import { getSignedUrls } from '../../utils/cadastros-storage'
+import type { Requisition, OPMEItem, SeparacaoRecord, Attachment } from '../../types'
 
 /* ─── Shared print styles ────────────────────────────────────────────── */
 const BASE_STYLES = `
@@ -480,6 +481,54 @@ function DeleteConfirmModal({ req, onConfirm, onClose }: {
   )
 }
 
+/* ─── Anexos section (signed URLs) ──────────────────────────────────── */
+function AnexosSection({ anexos }: { anexos: Attachment[] }) {
+  const T = useT()
+  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({})
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    getSignedUrls(anexos).then(urls => { setSignedUrls(urls); setLoading(false) }).catch(() => setLoading(false))
+  }, [anexos])
+
+  return (
+    <div className="px-4 py-3 flex gap-2" style={{ borderTop: `1px solid ${T.divider}`, background: 'rgba(0,122,255,0.04)' }}>
+      <Paperclip size={14} style={{ color: '#007AFF', flexShrink: 0, marginTop: 2 }} />
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-semibold mb-1.5" style={{ color: '#007AFF' }}>
+          Anexos ({anexos.length})
+        </p>
+        {loading ? (
+          <p className="text-xs" style={{ color: T.text3 }}>Carregando links…</p>
+        ) : (
+          <div className="space-y-1.5">
+            {anexos.map(a => {
+              const href = signedUrls[a.id]
+              return href ? (
+                <a key={a.id} href={href} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-xs hover:underline"
+                  style={{ color: '#007AFF' }}>
+                  <span className="flex-shrink-0">{a.tipo?.startsWith('image/') ? '🖼' : '📄'}</span>
+                  <span className="truncate flex-1 min-w-0">{a.nome}</span>
+                  <span className="flex-shrink-0" style={{ color: T.text3 }}>
+                    {a.tamanho < 1024 * 1024
+                      ? `${Math.round(a.tamanho / 1024)} KB`
+                      : `${(a.tamanho / 1024 / 1024).toFixed(1)} MB`}
+                  </span>
+                </a>
+              ) : (
+                <p key={a.id} className="text-xs" style={{ color: T.text3 }}>
+                  📄 {a.nome} (link indisponível)
+                </p>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 /* ─── Req card ───────────────────────────────────────────────────────── */
 function ReqCard({ req, onDeleted }: { req: Requisition; onDeleted: (id: string) => void }) {
   const { user, isAdmin } = useAuth()
@@ -734,29 +783,7 @@ function ReqCard({ req, onDeleted }: { req: Requisition; onDeleted: (id: string)
             )}
 
             {req.anexos && req.anexos.length > 0 && (
-              <div className="px-4 py-3 flex gap-2" style={{ borderTop: `1px solid ${T.divider}`, background: 'rgba(0,122,255,0.04)' }}>
-                <Paperclip size={14} style={{ color: '#007AFF', flexShrink: 0, marginTop: 2 }} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold mb-1.5" style={{ color: '#007AFF' }}>
-                    Anexos ({req.anexos.length})
-                  </p>
-                  <div className="space-y-1.5">
-                    {req.anexos.map(a => (
-                      <a key={a.id} href={a.url} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-xs hover:underline"
-                        style={{ color: '#007AFF' }}>
-                        <span className="flex-shrink-0">{a.tipo?.startsWith('image/') ? '🖼' : '📄'}</span>
-                        <span className="truncate flex-1 min-w-0">{a.nome}</span>
-                        <span className="flex-shrink-0" style={{ color: T.text3 }}>
-                          {a.tamanho < 1024 * 1024
-                            ? `${Math.round(a.tamanho / 1024)} KB`
-                            : `${(a.tamanho / 1024 / 1024).toFixed(1)} MB`}
-                        </span>
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              </div>
+              <AnexosSection anexos={req.anexos} />
             )}
           </div>
         )}

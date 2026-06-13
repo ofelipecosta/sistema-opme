@@ -1,8 +1,9 @@
 import type { Requisition } from '../types'
 import { formatDate } from './helpers'
 import { loadSettings } from './settings-storage'
+import { getSignedUrls } from './cadastros-storage'
 
-export function formatRequisitionMessage(req: Requisition): string {
+export function formatRequisitionMessage(req: Requisition, signedUrls?: Record<string, string>): string {
   const tipo = req.tipoCirurgia === 'emergencia' ? '[EMERGENCIA]' : 'Eletiva'
   const dataHora = req.cirurgiaData
     ? `${formatDate(req.cirurgiaData)}${req.cirurgiaHorario ? ' as ' + req.cirurgiaHorario : ''}`
@@ -14,7 +15,10 @@ export function formatRequisitionMessage(req: Requisition): string {
 
   const obs = req.observacoesGerais?.trim()
   const anexos = req.anexos?.length > 0
-    ? req.anexos.map(a => `  📎 ${a.nome}\n     ${a.url}`).join('\n')
+    ? req.anexos.map(a => {
+        const url = signedUrls?.[a.id] || a.url
+        return `  📎 ${a.nome}\n     ${url}`
+      }).join('\n')
     : null
 
   return [
@@ -52,11 +56,16 @@ export function formatRequisitionMessage(req: Requisition): string {
   ].filter(l => l !== null).join('\n')
 }
 
-export function shareWhatsApp(req: Requisition): void {
+export async function shareWhatsApp(req: Requisition): Promise<void> {
   const settings = loadSettings()
   if (!settings.whatsapp.enabled) return
 
-  const text = formatRequisitionMessage(req)
+  let signedUrls: Record<string, string> | undefined
+  if (req.anexos?.length) {
+    try { signedUrls = await getSignedUrls(req.anexos) } catch {}
+  }
+
+  const text = formatRequisitionMessage(req, signedUrls)
   const encoded = encodeURIComponent(text)
 
   if (settings.whatsapp.mode === 'api' && settings.whatsapp.apiUrl) {
@@ -89,12 +98,17 @@ export function shareWhatsApp(req: Requisition): void {
   }
 }
 
-export function shareEmail(req: Requisition): void {
+export async function shareEmail(req: Requisition): Promise<void> {
   const settings = loadSettings()
   if (!settings.email.enabled) return
 
+  let signedUrls: Record<string, string> | undefined
+  if (req.anexos?.length) {
+    try { signedUrls = await getSignedUrls(req.anexos) } catch {}
+  }
+
   const subject = encodeURIComponent(`[OPME NOS] Requisição ${req.numero} — ${req.pacienteNome} — ${req.hospitalNome}`)
-  const body = encodeURIComponent(formatRequisitionMessage(req).replace(/\*/g, ''))
+  const body = encodeURIComponent(formatRequisitionMessage(req, signedUrls).replace(/\*/g, ''))
   const to = settings.email.defaultTo || ''
 
   if (settings.email.mode === 'smtp' && settings.email.smtpApiUrl) {
@@ -108,7 +122,7 @@ export function shareEmail(req: Requisition): void {
       body: JSON.stringify({
         to: settings.email.defaultTo,
         subject: `[OPME NOS] Requisição ${req.numero} — ${req.pacienteNome}`,
-        text: formatRequisitionMessage(req).replace(/\*/g, ''),
+        text: formatRequisitionMessage(req, signedUrls).replace(/\*/g, ''),
         from: settings.email.smtpFrom,
         fromName: settings.email.smtpFromName,
       }),
@@ -120,15 +134,14 @@ export function shareEmail(req: Requisition): void {
 }
 
 /** Dispara WhatsApp + Email conforme configurações */
-export function shareAll(req: Requisition): void {
+export async function shareAll(req: Requisition): Promise<void> {
   const settings = loadSettings()
-  if (settings.whatsapp.enabled) shareWhatsApp(req)
+  if (settings.whatsapp.enabled) await shareWhatsApp(req)
   if (settings.email.enabled) {
     if (settings.email.mode === 'mailto') {
-      // Pequeno delay para não abrir dois pop-ups simultâneos
       setTimeout(() => shareEmail(req), 800)
     } else {
-      shareEmail(req)
+      await shareEmail(req)
     }
   }
 }

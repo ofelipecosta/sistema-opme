@@ -116,11 +116,11 @@ export default function RequisitionDetail() {
                 <Edit2 className="w-4 h-4" /> Editar
               </button>
             )}
-            <button onClick={() => shareWhatsApp(req)} className="btn-success btn-sm" title="Enviar via WhatsApp">
+            <button onClick={async () => shareWhatsApp(req)} className="btn-success btn-sm" title="Enviar via WhatsApp">
               <MessageCircle className="w-4 h-4" />
               <span className="hidden sm:inline">WhatsApp</span>
             </button>
-            <button onClick={() => shareEmail(req)} className="btn-secondary btn-sm" title="Enviar por E-mail">
+            <button onClick={async () => shareEmail(req)} className="btn-secondary btn-sm" title="Enviar por E-mail">
               <Mail className="w-4 h-4" />
               <span className="hidden sm:inline">E-mail</span>
             </button>

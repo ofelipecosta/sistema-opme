@@ -216,7 +216,9 @@ export async function deleteKitItem(id: string): Promise<void> {
   if (error) throw error
 }
 
-// ─── File upload (Supabase Storage) ──────────────────────────────────────────
+// ─── File upload (Supabase Storage — private bucket) ─────────────────────────
+
+const BUCKET = 'requisicao-anexos'
 
 export async function uploadAnexo(
   reqId: string,
@@ -224,13 +226,33 @@ export async function uploadAnexo(
 ): Promise<{ path: string; url: string; nome: string; tipo: string; tamanho: number }> {
   const ext = file.name.split('.').pop() || 'bin'
   const path = `${reqId}/${Date.now()}-${Math.random().toString(36).substr(2,6)}.${ext}`
-  const { error } = await supabase.storage.from('requisicao-anexos').upload(path, file)
+  const { error } = await supabase.storage.from(BUCKET).upload(path, file)
   if (error) throw error
-  const { data: urlData } = supabase.storage.from('requisicao-anexos').getPublicUrl(path)
-  return { path, url: urlData.publicUrl, nome: file.name, tipo: file.type, tamanho: file.size }
+  // Store path (not public URL) — bucket is private, access via signed URLs
+  return { path, url: path, nome: file.name, tipo: file.type, tamanho: file.size }
+}
+
+export async function getSignedUrl(pathOrUrl: string, expiresIn = 3600): Promise<string> {
+  if (pathOrUrl.startsWith('http')) return pathOrUrl // backward compat with old public URLs
+  const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(pathOrUrl, expiresIn)
+  if (error) throw error
+  return data.signedUrl
+}
+
+export async function getSignedUrls(
+  anexos: { id: string; url: string }[],
+  expiresIn = 3600,
+): Promise<Record<string, string>> {
+  const entries = await Promise.all(
+    anexos.map(async a => {
+      try { return [a.id, await getSignedUrl(a.url, expiresIn)] as const }
+      catch { return [a.id, ''] as const }
+    })
+  )
+  return Object.fromEntries(entries)
 }
 
 export async function deleteAnexo(path: string): Promise<void> {
-  const { error } = await supabase.storage.from('requisicao-anexos').remove([path])
+  const { error } = await supabase.storage.from(BUCKET).remove([path])
   if (error) throw error
 }

@@ -190,9 +190,9 @@ export default function RequisitionForm() {
       {savedReq && (
         <SuccessModal
           req={savedReq}
-          onShare={() => {
-            if (savedReq.tipoCirurgia === 'emergencia') shareWhatsApp(savedReq)
-            else shareEmail(savedReq)
+          onShare={async () => {
+            if (savedReq.tipoCirurgia === 'emergencia') await shareWhatsApp(savedReq)
+            else await shareEmail(savedReq)
           }}
           onClose={() => navigate(`/requisicoes/${savedReq.id}`)}
         />
