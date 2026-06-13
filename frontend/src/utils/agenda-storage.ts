@@ -131,6 +131,7 @@ export async function syncRequisitionToAgenda(req: {
   cirurgiaProcedimento?: string
   tipoCirurgia?: string
   solicitanteNome?: string
+  instrumentadorNome?: string
   status?: string
 }): Promise<void> {
   const agendaId = `req_${req.id}`
@@ -139,20 +140,21 @@ export async function syncRequisitionToAgenda(req: {
   const { data: existing } = await supabase.from('agenda').select('*').eq('id', agendaId).single()
 
   const item: Record<string, unknown> = {
-    id:            agendaId,
-    data:          req.cirurgiaData || '',
-    hora_cirurgia: req.cirurgiaHorario || '',
-    paciente:      req.pacienteNome || '',
-    hospital:      req.hospitalNome || '',
-    convenio:      req.cirurgiaConvenio || '',
-    medico:        req.medicoNome || '',
-    procedimento:  req.cirurgiaProcedimento || '',
-    vendedor:      req.vendedorNome || '',
-    emergencia:    req.tipoCirurgia === 'emergencia',
-    importado_em:  now,
-    importado_por: req.solicitanteNome || '',
-    origem:        'manual',
-    updated_at:    now,
+    id:              agendaId,
+    data:            req.cirurgiaData || '',
+    hora_cirurgia:   req.cirurgiaHorario || '',
+    paciente:        req.pacienteNome || '',
+    hospital:        req.hospitalNome || '',
+    convenio:        req.cirurgiaConvenio || '',
+    medico:          req.medicoNome || '',
+    procedimento:    req.cirurgiaProcedimento || '',
+    vendedor:        req.vendedorNome || '',
+    instrumentadores: req.instrumentadorNome || null,
+    emergencia:      req.tipoCirurgia === 'emergencia',
+    importado_em:    now,
+    importado_por:   req.solicitanteNome || '',
+    origem:          'manual',
+    updated_at:      now,
   }
 
   if (existing) {
