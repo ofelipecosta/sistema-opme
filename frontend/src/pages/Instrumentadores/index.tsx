@@ -12,7 +12,6 @@ import {
   type Instrumentador,
 } from '../../utils/cadastros-storage'
 import { getAgenda } from '../../utils/agenda-storage'
-import { ESPECIALIDADE_OPTIONS } from '../../utils/helpers'
 import type { AgendaItem } from '../../types/agenda'
 
 function useT() {
@@ -411,10 +410,7 @@ export default function InstrumentadoresPage() {
               </div>
               <div className="sm:col-span-2">
                 <label className="label">Especialidade</label>
-                <select className="input" value={form.especialidade} onChange={e => setForm(f => ({ ...f, especialidade: e.target.value }))}>
-                  <option value="">Selecione...</option>
-                  {ESPECIALIDADE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-                </select>
+                <input className="input" value={form.especialidade} onChange={e => setForm(f => ({ ...f, especialidade: e.target.value }))} placeholder="Ex: Ortopedia, Neurologia..." />
               </div>
               <div className="sm:col-span-2">
                 <label className="label">Observações</label>
