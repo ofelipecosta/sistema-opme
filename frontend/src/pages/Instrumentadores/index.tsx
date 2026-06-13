@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import {
   Plus, Trash2, Edit2, Check, X, Search, Phone, Mail,
   MapPin, Stethoscope, Users, Calendar, TrendingUp,
-  Building2, ChevronRight, ArrowLeft, ListChecks,
+  Building2, ChevronRight, ArrowLeft,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useTheme } from '../../contexts/ThemeContext'
@@ -513,13 +513,8 @@ export default function InstrumentadoresPage() {
 
                 {/* Actions */}
                 <div className="flex gap-2 pt-1" style={{ borderTop: `1px solid ${T.divider}` }}>
-                  <button
-                    onClick={e => { e.stopPropagation(); setSelectedInst(inst) }}
-                    className="btn-primary btn-sm flex-1">
-                    <ListChecks className="w-3 h-3" /> Ver cirurgias
-                  </button>
-                  <button onClick={e => openEdit(inst, e)} className="btn-secondary btn-sm">
-                    <Edit2 className="w-3 h-3" />
+                  <button onClick={e => openEdit(inst, e)} className="btn-secondary btn-sm flex-1">
+                    <Edit2 className="w-3 h-3" /> Editar
                   </button>
                   <button onClick={e => onDelete(inst.id, inst.nome, e)} className="btn-danger btn-sm">
                     <Trash2 className="w-3 h-3" />
