@@ -238,21 +238,29 @@ function KpiGrid({ agenda, separacoes, hospitais, hoje, total, finalizadas, navi
   }
 
   const cards = [
-    { icon: CalendarClock, label: 'Total',           value: total,          color: C.blue,   route: '/requisicoes', pulse: false },
-    { icon: Activity,      label: 'Hoje',            value: hoje,           color: C.green,  route: '/requisicoes', pulse: true  },
-    { icon: AlertCircle,   label: 'Não Concluídas',  value: naoConcluidas,  color: C.red,    route: '/separacao',   pulse: false },
-    { icon: Timer,         label: 'Críticas',        value: criticas,       color: C.orange, route: '/separacao',   pulse: false },
-    { icon: Clock,         label: 'Próximas 24h',    value: prox24h,        color: '#EAB308',route: '/separacao',   pulse: false },
-    { icon: CheckCircle2,  label: 'Em Dia',          value: emDia,          color: C.green,  route: '/separacao',   pulse: false },
-    { icon: Package,       label: 'Pendentes',       value: pendentes,      color: C.purple, route: '/requisicoes', pulse: false },
-    { icon: CheckCircle2,  label: 'Finalizadas',     value: finalizadas,    color: C.teal,   route: '/requisicoes', pulse: false },
+    { icon: CalendarClock, label: 'Total',          value: total,         color: C.blue,    route: '/requisicoes', pulse: false,
+      tooltip: 'Total de cirurgias cadastradas na agenda.' },
+    { icon: Activity,      label: 'Hoje',           value: hoje,          color: C.green,   route: '/requisicoes', pulse: true,
+      tooltip: 'Cirurgias agendadas para hoje.' },
+    { icon: AlertCircle,   label: 'Não Concluídas', value: naoConcluidas, color: C.red,     route: '/separacao',   pulse: false,
+      tooltip: 'Prazo de entrega de materiais já venceu e o material ainda não foi separado.' },
+    { icon: Timer,         label: 'Críticas',       value: criticas,      color: C.orange,  route: '/separacao',   pulse: false,
+      tooltip: 'Prazo de entrega vence em menos de 4 horas. Ação imediata necessária.' },
+    { icon: Clock,         label: 'Próximas 24h',   value: prox24h,       color: '#EAB308', route: '/separacao',   pulse: false,
+      tooltip: 'Prazo de entrega de materiais vence nas próximas 24 horas.' },
+    { icon: CheckCircle2,  label: 'Em Dia',         value: emDia,         color: C.green,   route: '/separacao',   pulse: false,
+      tooltip: 'Materiais já separados dentro do prazo.' },
+    { icon: Package,       label: 'Pendentes',      value: pendentes,     color: C.purple,  route: '/requisicoes', pulse: false,
+      tooltip: 'Total de cirurgias em aberto (aprovadas ou agendadas, ainda não finalizadas).' },
+    { icon: CheckCircle2,  label: 'Finalizadas',    value: finalizadas,   color: C.teal,    route: '/requisicoes', pulse: false,
+      tooltip: 'Cirurgias concluídas ou faturadas.' },
   ]
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
       {cards.map(c => (
         <StatCard key={c.label} icon={c.icon} label={c.label} value={c.value}
-          color={c.color} pulse={c.pulse} onClick={() => navigate(c.route)} />
+          color={c.color} pulse={c.pulse} tooltip={c.tooltip} onClick={() => navigate(c.route)} />
       ))}
     </div>
   )
@@ -261,34 +269,59 @@ function KpiGrid({ agenda, separacoes, hospitais, hoje, total, finalizadas, navi
 /* ═══════════════════════════════════════════════════════════════════ */
 /*  STAT CARD                                                            */
 /* ═══════════════════════════════════════════════════════════════════ */
-function StatCard({ icon: Icon, label, value, color, pulse, active, onClick }: {
+function StatCard({ icon: Icon, label, value, color, pulse, active, onClick, tooltip }: {
   icon: ComponentType<{ size?: number; style?: React.CSSProperties }>
   label: string; value: number; color: string
-  pulse?: boolean; active?: boolean; onClick?: () => void
+  pulse?: boolean; active?: boolean; onClick?: () => void; tooltip?: string
 }) {
   const T = useT()
+  const [showTip, setShowTip] = useState(false)
+
   return (
-    <button type="button" onClick={onClick} className="rounded-2xl p-4 text-left transition-all duration-150 w-full"
-      style={{
-        background: active ? `${color}18` : T.card,
-        border: active ? `1.5px solid ${color}40` : `1px solid ${T.cardBorder}`,
-        boxShadow: active ? `0 4px 20px ${color}20` : T.shadow,
-        cursor: onClick ? 'pointer' : 'default',
-        backdropFilter: 'blur(16px)',
-      }}>
-      <div className="flex items-center justify-between mb-3">
-        <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: `${color}14` }}>
-          <Icon size={15} style={{ color }} />
+    <div className="relative">
+      <button type="button" onClick={onClick}
+        onMouseEnter={() => tooltip && setShowTip(true)}
+        onMouseLeave={() => setShowTip(false)}
+        className="rounded-2xl p-4 text-left transition-all duration-150 w-full"
+        style={{
+          background: active ? `${color}18` : T.card,
+          border: active ? `1.5px solid ${color}40` : `1px solid ${T.cardBorder}`,
+          boxShadow: active ? `0 4px 20px ${color}20` : T.shadow,
+          cursor: onClick ? 'pointer' : 'default',
+          backdropFilter: 'blur(16px)',
+        }}>
+        <div className="flex items-center justify-between mb-3">
+          <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: `${color}14` }}>
+            <Icon size={15} style={{ color }} />
+          </div>
+          {pulse && !active && (
+            <span className="w-2 h-2 rounded-full" style={{ background: color, animation: 'pulse 2s infinite', boxShadow: `0 0 6px ${color}` }} />
+          )}
         </div>
-        {pulse && !active && (
-          <span className="w-2 h-2 rounded-full" style={{ background: color, animation: 'pulse 2s infinite', boxShadow: `0 0 6px ${color}` }} />
-        )}
-      </div>
-      <p className="text-3xl font-bold leading-none mb-1.5" style={{ color: active ? color : T.text1 }}>{value}</p>
-      <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: active ? color : T.text3 }}>{label}</p>
-      <div className="h-0.5 rounded-full mt-2.5 transition-all duration-300"
-        style={{ background: color, opacity: active ? 1 : 0.2, width: active ? '100%' : '24px' }} />
-    </button>
+        <p className="text-3xl font-bold leading-none mb-1.5" style={{ color: active ? color : T.text1 }}>{value}</p>
+        <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: active ? color : T.text3 }}>{label}</p>
+        <div className="h-0.5 rounded-full mt-2.5 transition-all duration-300"
+          style={{ background: color, opacity: active ? 1 : 0.2, width: active ? '100%' : '24px' }} />
+      </button>
+
+      {showTip && tooltip && (
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 w-48 text-center pointer-events-none"
+          style={{
+            background: T.isDark ? '#1F2937' : '#1D1D1F',
+            color: '#fff',
+            borderRadius: 10,
+            padding: '8px 12px',
+            fontSize: 12,
+            lineHeight: '1.4',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
+          }}>
+          {tooltip}
+          <div className="absolute left-1/2 -translate-x-1/2 top-full"
+            style={{ borderLeft: '6px solid transparent', borderRight: '6px solid transparent',
+              borderTop: `6px solid ${T.isDark ? '#1F2937' : '#1D1D1F'}` }} />
+        </div>
+      )}
+    </div>
   )
 }
 
