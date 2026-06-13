@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
-  Plus, Trash2, Edit2, Check, X, AlertCircle, ChevronDown, ChevronUp,
+  Plus, Trash2, Edit2, Check, X, AlertCircle,
   Stethoscope, Building2, ShieldCheck, ClipboardList, Package2,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -407,84 +407,14 @@ function ConveniosTab() {
 
 // ─── Procedimentos tab ────────────────────────────────────────────────────────
 
-function KitSection({ proc }: { proc: Procedimento }) {
-  const [items, setItems] = useState<KitItem[]>([])
-  const [expanded, setExpanded] = useState(false)
-  const [adding, setAdding] = useState(false)
-  const [nome, setNome] = useState('')
-  const T = useT()
-
-  useEffect(() => {
-    if (expanded) getKitItems(proc.id).then(setItems).catch(() => {})
-  }, [expanded, proc.id])
-
-  async function addItem() {
-    if (!nome.trim()) return
-    try {
-      const item = await createKitItem(proc.id, nome, items.length)
-      setItems(prev => [...prev, item])
-      setNome('')
-      toast.success('Item adicionado')
-    } catch { toast.error('Erro ao adicionar') }
-  }
-
-  async function removeItem(id: string) {
-    try { await deleteKitItem(id); setItems(prev => prev.filter(i => i.id !== id)) } catch { toast.error('Erro') }
-  }
-
-  const inp: React.CSSProperties = { background: T.inputBg, border: `1px solid ${T.cardBorder}`, color: T.text1, borderRadius: 8, padding: '6px 10px', fontSize: 12, outline: 'none', flex: 1 }
-
-  return (
-    <div style={{ borderBottom: `1px solid ${T.divider}` }}>
-      <button onClick={() => setExpanded(e => !e)}
-        className="flex items-center gap-2 w-full px-4 py-2.5 text-left hover:bg-slate-50 transition-colors">
-        <Package2 size={13} style={{ color: '#007AFF', flexShrink: 0 }} />
-        <span className="text-sm font-medium flex-1 truncate" style={{ color: T.text1 }}>{proc.nome}</span>
-        {proc.segmento && <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: T.inputBg, color: T.text3 }}>{proc.segmento}</span>}
-        {expanded ? <ChevronUp size={13} style={{ color: T.text3 }} /> : <ChevronDown size={13} style={{ color: T.text3 }} />}
-      </button>
-
-      {expanded && (
-        <div className="px-4 pb-3 ml-5">
-          {items.length === 0 && !adding && (
-            <p className="text-xs py-1" style={{ color: T.text3 }}>Nenhum item no kit</p>
-          )}
-          {items.map(item => (
-            <div key={item.id} className="flex items-center gap-2 py-1">
-              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#007AFF' }} />
-              <span className="text-xs flex-1" style={{ color: T.text2 }}>{item.nome}</span>
-              <button onClick={() => removeItem(item.id)} className="p-0.5 rounded" style={{ color: T.text3 }}
-                onMouseEnter={e => (e.currentTarget.style.color = '#EF4444')}
-                onMouseLeave={e => (e.currentTarget.style.color = T.text3)}>
-                <X size={11} />
-              </button>
-            </div>
-          ))}
-
-          {adding ? (
-            <div className="flex gap-2 mt-2">
-              <input value={nome} onChange={e => setNome(e.target.value.toUpperCase())} placeholder="NOME DO ITEM"
-                style={inp} autoFocus
-                onKeyDown={e => { if (e.key === 'Enter') addItem(); if (e.key === 'Escape') { setAdding(false); setNome('') } }} />
-              <button onClick={addItem} className="p-1.5 rounded-lg" style={{ color: '#16A34A' }}><Check size={13} /></button>
-              <button onClick={() => { setAdding(false); setNome('') }} className="p-1.5 rounded-lg" style={{ color: T.text3 }}><X size={13} /></button>
-            </div>
-          ) : (
-            <button onClick={() => setAdding(true)} className="flex items-center gap-1.5 mt-2 text-xs font-medium" style={{ color: '#007AFF' }}>
-              <Plus size={11} /> Adicionar item ao kit
-            </button>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
-
 function ProcedimentosTab() {
-  const [items, setItems] = useState<Procedimento[]>([])
-  const [adding, setAdding] = useState(false)
-  const [editId, setEditId] = useState<string | null>(null)
-  const [nome, setNome] = useState(''); const [seg, setSeg] = useState('')
+  const [items, setItems]         = useState<Procedimento[]>([])
+  const [showModal, setShowModal] = useState(false)
+  const [editId, setEditId]       = useState<string | null>(null)
+  const [nome, setNome]           = useState('')
+  // kit items managed inside the modal
+  const [kitItems, setKitItems]   = useState<KitItem[]>([])
+  const [kitInput, setKitInput]   = useState('')
   const T = useT()
 
   const load = useCallback(async () => {
@@ -492,12 +422,51 @@ function ProcedimentosTab() {
   }, [])
   useEffect(() => { load() }, [load])
 
+  async function openNew() {
+    setEditId(null); setNome(''); setKitItems([]); setKitInput(''); setShowModal(true)
+  }
+
+  async function openEdit(p: Procedimento) {
+    setEditId(p.id); setNome(p.nome); setKitInput('')
+    try { setKitItems(await getKitItems(p.id)) } catch { setKitItems([]) }
+    setShowModal(true)
+  }
+
+  async function addKitItem() {
+    const v = kitInput.trim().toUpperCase()
+    if (!v) return
+    if (editId) {
+      try {
+        const item = await createKitItem(editId, v, kitItems.length)
+        setKitItems(prev => [...prev, item])
+      } catch { toast.error('Erro ao adicionar item') }
+    } else {
+      // before procedure exists, store locally
+      setKitItems(prev => [...prev, { id: `tmp_${Date.now()}`, procedimentoId: '', nome: v, ordem: prev.length, ativo: true }])
+    }
+    setKitInput('')
+  }
+
+  async function removeKitItem(id: string) {
+    if (id.startsWith('tmp_')) { setKitItems(prev => prev.filter(i => i.id !== id)); return }
+    try { await deleteKitItem(id); setKitItems(prev => prev.filter(i => i.id !== id)) } catch { toast.error('Erro') }
+  }
+
   async function save() {
-    if (!nome.trim()) return
+    if (!nome.trim()) { toast.error('Nome obrigatório'); return }
     try {
-      if (editId) { await updateProcedimento(editId, { nome, segmento: seg }); toast.success('Procedimento atualizado') }
-      else { await createProcedimento(nome, '', seg); toast.success('Procedimento cadastrado') }
-      reset(); load()
+      if (editId) {
+        await updateProcedimento(editId, { nome })
+        toast.success('Procedimento atualizado')
+      } else {
+        const proc = await createProcedimento(nome, '', '')
+        // save pending kit items
+        for (let i = 0; i < kitItems.length; i++) {
+          await createKitItem(proc.id, kitItems[i].nome, i)
+        }
+        toast.success('Procedimento cadastrado')
+      }
+      setShowModal(false); load()
     } catch { toast.error('Erro ao salvar') }
   }
 
@@ -506,53 +475,102 @@ function ProcedimentosTab() {
     try { await deleteProcedimento(id); toast.success('Removido'); load() } catch { toast.error('Erro ao remover') }
   }
 
-  function startEdit(p: Procedimento) { setEditId(p.id); setNome(p.nome); setSeg(p.segmento || ''); setAdding(true) }
-  function reset() { setAdding(false); setEditId(null); setNome(''); setSeg('') }
+  const inp: React.CSSProperties = {
+    background: T.inputBg, border: `1px solid ${T.cardBorder}`,
+    color: T.text1, borderRadius: 8, padding: '6px 10px', fontSize: 13, outline: 'none', flex: 1,
+  }
 
   return (
-    <div className="space-y-1">
-      <SectionCard icon={<ClipboardList size={16} />} title="Procedimentos e Kits" count={items.length}>
-        <div className="px-4 py-2.5" style={{ borderBottom: `1px solid rgba(0,0,0,0.05)` }}>
-          <p className="text-xs" style={{ color: '#6B7280' }}>
-            Clique em um procedimento para gerenciar os itens do kit padrão. Itens do kit serão sugeridos automaticamente ao selecionar o procedimento no formulário de agendamento.
-          </p>
-        </div>
-        {items.map(p => (
-          <div key={p.id} className="relative group">
-            <KitSection proc={p} />
-            <div className="absolute right-3 top-2 hidden group-hover:flex gap-1">
-              <button onClick={() => startEdit(p)} className="p-1 rounded" style={{ color: '#6B7280' }}
-                onMouseEnter={e => (e.currentTarget.style.color = '#007AFF')}
-                onMouseLeave={e => (e.currentTarget.style.color = '#6B7280')}>
-                <Edit2 size={11} />
-              </button>
-              <button onClick={() => del(p.id, p.nome)} className="p-1 rounded" style={{ color: '#6B7280' }}
-                onMouseEnter={e => (e.currentTarget.style.color = '#EF4444')}
-                onMouseLeave={e => (e.currentTarget.style.color = '#6B7280')}>
-                <Trash2 size={11} />
+    <>
+      {/* Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
+          <div className="w-full max-w-md rounded-2xl p-5 space-y-4"
+            style={{ background: T.card, boxShadow: '0 20px 60px rgba(0,0,0,0.3)', maxHeight: '90vh', overflowY: 'auto' }}>
+
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-base" style={{ color: T.text1 }}>
+                {editId ? 'Editar' : 'Novo'} Procedimento
+              </h3>
+              <button onClick={() => setShowModal(false)} style={{ color: T.text3 }}><X size={18} /></button>
+            </div>
+
+            {/* Nome */}
+            <div>
+              <label className="label">Nome do procedimento *</label>
+              <input className="input" value={nome}
+                onChange={e => setNome(e.target.value.toUpperCase())}
+                placeholder="NOME DO PROCEDIMENTO"
+                onKeyDown={e => e.key === 'Enter' && save()} />
+            </div>
+
+            {/* Kit items */}
+            <div>
+              <p className="label mb-2">Itens do kit</p>
+              <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${T.cardBorder}` }}>
+                {kitItems.length === 0 && (
+                  <p className="px-3 py-2 text-xs" style={{ color: T.text3 }}>Nenhum item adicionado</p>
+                )}
+                {kitItems.map((item, idx) => (
+                  <div key={item.id} className="flex items-center gap-2 px-3 py-2"
+                    style={{ borderBottom: idx < kitItems.length - 1 ? `1px solid ${T.divider}` : undefined }}>
+                    <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#2563EB' }} />
+                    <span className="text-sm flex-1" style={{ color: T.text1 }}>{item.nome}</span>
+                    <button onClick={() => removeKitItem(item.id)} className="p-0.5 rounded" style={{ color: T.text3 }}
+                      onMouseEnter={e => (e.currentTarget.style.color = '#EF4444')}
+                      onMouseLeave={e => (e.currentTarget.style.color = T.text3)}>
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+                {/* Add item row */}
+                <div className="flex items-center gap-2 px-3 py-2" style={{ borderTop: kitItems.length > 0 ? `1px solid ${T.divider}` : undefined }}>
+                  <input value={kitInput} onChange={e => setKitInput(e.target.value)}
+                    placeholder="Adicionar item ao kit..."
+                    style={inp}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addKitItem() } }} />
+                  <button onClick={addKitItem} className="p-1.5 rounded-lg flex-shrink-0" style={{ color: '#16A34A' }}>
+                    <Plus size={14} />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-1">
+              <button onClick={() => setShowModal(false)} className="btn-secondary">Cancelar</button>
+              <button onClick={save} className="btn-primary ml-auto">
+                <Check size={14} /> {editId ? 'Salvar' : 'Criar'}
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      <SectionCard icon={<ClipboardList size={16} />} title="Procedimentos e Kits" count={items.length}>
+        {items.map(p => (
+          <div key={p.id} className="flex items-center gap-3 px-3 py-2.5" style={{ borderBottom: `1px solid ${T.divider}` }}>
+            <Package2 size={13} style={{ color: '#2563EB', flexShrink: 0 }} />
+            <span className="text-sm font-medium flex-1 truncate" style={{ color: T.text1 }}>{p.nome}</span>
+            <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg" style={{ color: T.text3 }}
+              onMouseEnter={e => (e.currentTarget.style.color = '#2563EB')}
+              onMouseLeave={e => (e.currentTarget.style.color = T.text3)}>
+              <Edit2 size={13} />
+            </button>
+            <button onClick={() => del(p.id, p.nome)} className="p-1.5 rounded-lg" style={{ color: T.text3 }}
+              onMouseEnter={e => (e.currentTarget.style.color = '#EF4444')}
+              onMouseLeave={e => (e.currentTarget.style.color = T.text3)}>
+              <Trash2 size={13} />
+            </button>
+          </div>
         ))}
-        {adding && (
-          <AddRow
-            fields={[
-              { key: 'nome', placeholder: 'NOME DO PROCEDIMENTO', value: nome, onChange: setNome },
-              { key: 'seg',  placeholder: 'Segmento (ex: Ortopedia)', value: seg, onChange: setSeg },
-            ]}
-            onSave={save} onCancel={reset}
-          />
-        )}
-        {!adding && (
-          <button onClick={() => setAdding(true)} className="flex items-center gap-2 w-full px-4 py-3 text-sm font-medium transition-colors"
-            style={{ color: '#007AFF' }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,122,255,0.05)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-            <Plus size={14} /> Adicionar procedimento
-          </button>
-        )}
+        <button onClick={openNew} className="flex items-center gap-2 w-full px-4 py-3 text-sm font-medium transition-colors"
+          style={{ color: '#2563EB' }}
+          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(37,99,235,0.05)')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+          <Plus size={14} /> Adicionar procedimento
+        </button>
       </SectionCard>
-    </div>
+    </>
   )
 }
 
