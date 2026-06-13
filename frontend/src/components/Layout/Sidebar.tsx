@@ -2,7 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, CalendarDays, Users, BarChart2, Stethoscope,
   X, LogOut, Upload, Settings, Tv, Package, ClipboardList,
-  ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen, BookOpen,
+  ChevronDown, PanelLeftClose, PanelLeftOpen, BookOpen,
 } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTheme } from '../../contexts/ThemeContext'
@@ -16,29 +16,34 @@ interface Props {
   onToggleCollapse: () => void
 }
 
-const mainItems = [
-  { to: '/',           label: 'Dashboard',              icon: LayoutDashboard, end: true },
-  { to: '/requisicoes',label: 'Agendamento',            icon: CalendarDays },
-  { to: '/separacao',  label: 'Separação de Materiais', icon: Package },
-  { to: '/controle',   label: 'Controle de Cirurgias', icon: ClipboardList, adminOnly: true },
-  { to: '/relatorios', label: 'Relatórios',            icon: BarChart2,     adminOnly: true },
+const ALL_MAIN = [
+  { to: '/',            label: 'Dashboard',              icon: LayoutDashboard, end: true,  navKey: 'dashboard'   as const },
+  { to: '/requisicoes', label: 'Agendamento',            icon: CalendarDays,                navKey: 'agendamento' as const },
+  { to: '/separacao',   label: 'Separação de Materiais', icon: Package,                     navKey: 'separacao'   as const },
+  { to: '/controle',    label: 'Controle de Cirurgias',  icon: ClipboardList,               navKey: 'controle'    as const },
+  { to: '/relatorios',  label: 'Relatórios',             icon: BarChart2,                   navKey: 'relatorios'  as const },
 ]
 
-const configSubItems = [
-  { to: '/configuracoes', label: 'Configurações', icon: Settings  },
-  { to: '/cadastros',     label: 'Cadastros',     icon: BookOpen  },
-  { to: '/usuarios',      label: 'Usuários',      icon: Users     },
-  { to: '/importar',      label: 'Importar',      icon: Upload    },
+const ALL_CONFIG = [
+  { to: '/configuracoes', label: 'Configurações', icon: Settings, navKey: 'configuracoes' as const },
+  { to: '/cadastros',     label: 'Cadastros',     icon: BookOpen, navKey: 'cadastros'     as const },
+  { to: '/usuarios',      label: 'Usuários',      icon: Users,    navKey: 'usuarios'      as const },
+  { to: '/importar',      label: 'Importar',      icon: Upload,   navKey: 'importar'      as const },
 ]
 
-const CONFIG_PATHS = configSubItems.map(i => i.to)
+const ALL_CONFIG_PATHS = ALL_CONFIG.map(i => i.to)
 
 export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: Props) {
-  const { user, logout, isAdmin } = useAuth()
+  const { user, logout, permissions } = useAuth()
+  const nav = permissions?.nav
   const { isDark } = useTheme()
   const location = useLocation()
 
-  const isConfigActive = CONFIG_PATHS.some(p => location.pathname.startsWith(p))
+  const visibleMain   = ALL_MAIN.filter(i => nav?.[i.navKey])
+  const visibleConfig = ALL_CONFIG.filter(i => nav?.[i.navKey])
+  const hasConfigMenu = visibleConfig.length > 0
+
+  const isConfigActive = ALL_CONFIG_PATHS.some(p => location.pathname.startsWith(p))
   const [configOpen, setConfigOpen] = useState(isConfigActive)
 
   const bg     = isDark ? '#1a2235' : 'rgba(255,255,255,0.92)'
@@ -94,35 +99,32 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
           <p className="px-3 pt-1 pb-2 text-[10px] font-bold tracking-widest uppercase" style={{ color: text3 }}>Menu</p>
         )}
 
-        {mainItems.map(item => {
-          if (item.adminOnly && !isAdmin) return null
-          return (
-            <NavLink
-              key={item.to} to={item.to} end={item.end}
-              onClick={onClose}
-              title={collapsed ? item.label : undefined}
-              className={({ isActive }) => cn(
-                'flex items-center gap-2.5 rounded-xl text-sm font-medium transition-all duration-150',
-                collapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2.5',
-                isActive ? '' : 'hover:bg-black/[0.04]'
-              )}
-              style={({ isActive }) => isActive
-                ? { background: 'rgba(0,122,255,0.12)', color: '#007AFF' }
-                : { color: text2 }
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <item.icon className="w-4 h-4 flex-shrink-0" style={{ color: isActive ? '#007AFF' : text3 }} />
-                  {!collapsed && item.label}
-                </>
-              )}
-            </NavLink>
-          )
-        })}
+        {visibleMain.map(item => (
+          <NavLink
+            key={item.to} to={item.to} end={item.end}
+            onClick={onClose}
+            title={collapsed ? item.label : undefined}
+            className={({ isActive }) => cn(
+              'flex items-center gap-2.5 rounded-xl text-sm font-medium transition-all duration-150',
+              collapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2.5',
+              isActive ? '' : 'hover:bg-black/[0.04]'
+            )}
+            style={({ isActive }) => isActive
+              ? { background: 'rgba(0,122,255,0.12)', color: '#007AFF' }
+              : { color: text2 }
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <item.icon className="w-4 h-4 flex-shrink-0" style={{ color: isActive ? '#007AFF' : text3 }} />
+                {!collapsed && item.label}
+              </>
+            )}
+          </NavLink>
+        ))}
 
         {/* Painel TV */}
-        {isAdmin && (
+        {nav?.configuracoes && (
           <a href="/tv" target="_blank" rel="noopener noreferrer" onClick={onClose}
             title={collapsed ? 'Painel TV' : undefined}
             className={cn(
@@ -143,8 +145,8 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
           </a>
         )}
 
-        {/* Configurações */}
-        {isAdmin && !collapsed && (
+        {/* Configurações — submenu expandível (desktop) */}
+        {hasConfigMenu && !collapsed && (
           <div className="pt-1">
             <button
               onClick={() => setConfigOpen(v => !v)}
@@ -164,7 +166,7 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
             </button>
             {configOpen && (
               <div className="mt-0.5 ml-3 pl-3 space-y-0.5" style={{ borderLeft: `1.5px solid ${border}` }}>
-                {configSubItems.map(item => (
+                {visibleConfig.map(item => (
                   <NavLink
                     key={item.to} to={item.to} onClick={onClose}
                     className={({ isActive }) => cn(
@@ -189,11 +191,11 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
           </div>
         )}
 
-        {/* Configurações collapsed: ícone só */}
-        {isAdmin && collapsed && (
+        {/* Configurações collapsed: primeiro item visível como ícone */}
+        {hasConfigMenu && collapsed && visibleConfig[0] && (
           <NavLink
-            to="/configuracoes"
-            title="Configurações"
+            to={visibleConfig[0].to}
+            title={visibleConfig[0].label}
             className={({ isActive }) => cn(
               'flex items-center justify-center rounded-xl py-2.5 transition-all duration-150',
               isActive ? '' : 'hover:bg-black/[0.04]'

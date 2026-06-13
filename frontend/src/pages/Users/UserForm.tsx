@@ -8,12 +8,12 @@ import type { User, UserRole } from '../../types'
 
 type FormValues = Omit<User, 'id' | 'createdAt' | 'updatedAt'>
 
-const ROLES: { value: UserRole; label: string }[] = [
-  { value: 'admin',       label: 'Administrador' },
-  { value: 'vendedor',    label: 'Vendedor' },
-  { value: 'operacional', label: 'Operacional' },
-  { value: 'estoque',     label: 'Estoque' },
-  { value: 'consulta',    label: 'Consulta' },
+const ROLES: { value: UserRole; label: string; desc: string }[] = [
+  { value: 'admin',          label: 'Administrador',  desc: 'Acesso total — configurações, usuários, relatórios' },
+  { value: 'gestor',         label: 'Gestor',          desc: 'Gestão completa — sem configurações do sistema' },
+  { value: 'estoque',        label: 'Estoque',         desc: 'Separação de materiais apenas' },
+  { value: 'vendedor',       label: 'Vendedor',        desc: 'Cria e gerencia as próprias requisições' },
+  { value: 'instrumentador', label: 'Instrumentador',  desc: 'Visualiza apenas as cirurgias em que é escalado' },
 ]
 
 export default function UserForm() {
@@ -105,7 +105,9 @@ export default function UserForm() {
           <div>
             <label className="label">Perfil de Acesso *</label>
             <select className="input" {...register('perfil', { required: true })}>
-              {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+              {ROLES.map(r => (
+                <option key={r.value} value={r.value}>{r.label} — {r.desc}</option>
+              ))}
             </select>
           </div>
           <div>

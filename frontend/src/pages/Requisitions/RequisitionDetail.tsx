@@ -21,7 +21,7 @@ const STATUS_FLOW_LABELS: Record<RequisitionStatus, string> = {
 export default function RequisitionDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { user, isAdmin, canEdit } = useAuth()
+  const { user, isAdmin, isGestor, canEdit, permissions } = useAuth()
   const [req, setReq] = useState<import('../../types').Requisition | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -83,9 +83,10 @@ export default function RequisitionDetail() {
   }
 
   const nextStatuses = getStatusFlow(req.status)
-  const canChangeStatus = isAdmin || (canEdit && req.solicitanteId === user?.id)
-  const canEditReq = canEdit && (isAdmin || req.solicitanteId === user?.id) && ['rascunho', 'enviada'].includes(req.status)
-  const canDelete = isAdmin || (canEdit && req.solicitanteId === user?.id)
+  const isPrivileged = isAdmin || isGestor
+  const canChangeStatus = (permissions?.canAdvanceStatus ?? false) && (isPrivileged || req.solicitanteId === user?.id)
+  const canEditReq = canEdit && (isPrivileged || req.solicitanteId === user?.id) && ['rascunho', 'enviada'].includes(req.status)
+  const canDelete = (permissions?.canDeleteRequisition ?? false) && (isPrivileged || req.solicitanteId === user?.id)
 
   return (
     <div className="max-w-4xl space-y-5">

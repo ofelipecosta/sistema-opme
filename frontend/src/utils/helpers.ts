@@ -54,22 +54,26 @@ export function surgeryTypeLabel(type: SurgeryType): string {
 
 export function roleLabel(role: UserRole): string {
   const map: Record<UserRole, string> = {
-    admin:       'Administrador',
-    vendedor:    'Vendedor',
-    operacional: 'Operacional',
-    consulta:    'Consulta',
-    estoque:     'Estoque',
+    admin:          'Administrador',
+    gestor:         'Gestor',
+    vendedor:       'Vendedor',
+    estoque:        'Estoque',
+    instrumentador: 'Instrumentador',
+    operacional:    'Operacional',
+    consulta:       'Consulta',
   }
   return map[role] || role
 }
 
 export function roleColor(role: UserRole): string {
   const map: Record<UserRole, string> = {
-    admin:       'bg-rose-50 text-rose-600 ring-1 ring-rose-100',
-    vendedor:    'bg-blue-50 text-blue-600 ring-1 ring-blue-100',
-    operacional: 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100',
-    consulta:    'bg-slate-100 text-slate-500',
-    estoque:     'bg-orange-50 text-orange-600 ring-1 ring-orange-100',
+    admin:          'bg-rose-50 text-rose-600 ring-1 ring-rose-100',
+    gestor:         'bg-purple-50 text-purple-600 ring-1 ring-purple-100',
+    vendedor:       'bg-blue-50 text-blue-600 ring-1 ring-blue-100',
+    estoque:        'bg-orange-50 text-orange-600 ring-1 ring-orange-100',
+    instrumentador: 'bg-teal-50 text-teal-600 ring-1 ring-teal-100',
+    operacional:    'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100',
+    consulta:       'bg-slate-100 text-slate-500',
   }
   return map[role] || 'bg-slate-100 text-slate-500'
 }

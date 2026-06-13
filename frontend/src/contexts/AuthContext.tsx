@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import type { User } from '../types'
 import { getCurrentUser, setCurrentUser, getUserByLogin } from '../utils/storage'
+import { getPermissions, type Permissions } from '../utils/permissions'
 
 interface AuthContextValue {
   user: User | null
@@ -8,7 +9,9 @@ interface AuthContextValue {
   login: (login: string, senha: string) => Promise<boolean>
   logout: () => void
   isAdmin: boolean
+  isGestor: boolean
   canEdit: boolean
+  permissions: Permissions | null
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -39,11 +42,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setCurrentUser(null)
   }, [])
 
-  const isAdmin = user?.perfil === 'admin'
-  const canEdit = user?.perfil === 'admin' || user?.perfil === 'vendedor' || user?.perfil === 'operacional'
+  const permissions = user ? getPermissions(user.perfil) : null
+  const isAdmin  = permissions?.isAdmin  ?? false
+  const isGestor = permissions?.isGestor ?? false
+  const canEdit  = (permissions?.canEditOwnRequisition || permissions?.canEditAllRequisitions) ?? false
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, isAdmin, canEdit }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, isAdmin, isGestor, canEdit, permissions }}>
       {children}
     </AuthContext.Provider>
   )

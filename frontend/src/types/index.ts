@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'vendedor' | 'operacional' | 'consulta' | 'estoque'
+export type UserRole = 'admin' | 'gestor' | 'vendedor' | 'estoque' | 'instrumentador' | 'operacional' | 'consulta'
 
 export interface SeparacaoRecord {
   id: string

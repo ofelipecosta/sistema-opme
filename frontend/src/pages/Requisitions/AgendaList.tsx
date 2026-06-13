@@ -142,7 +142,10 @@ function ShareSheet({ item, onClose }: { item: AgendaItem; onClose: () => void }
 
 export default function AgendaList() {
   const navigate = useNavigate()
-  const { isAdmin, canEdit } = useAuth()
+  const { user, isAdmin, canEdit, permissions } = useAuth()
+  const canCreate = permissions?.canCreateRequisition ?? false
+  const canEditAny = (permissions?.canEditAllRequisitions || permissions?.canEditOwnRequisition) ?? false
+  const canDelete = permissions?.canDeleteRequisition ?? false
   const T = useT()
 
   const location = useLocation()
@@ -164,7 +167,16 @@ export default function AgendaList() {
 
   const filtered = useMemo(() => {
     const today = todayStr()
+    const myName = user?.nome?.toLowerCase() ?? ''
     return items.filter(item => {
+      // ── Escopo de dados por perfil ──
+      if (permissions?.seeOnlyOwnAgenda && myName) {
+        if (!(item.vendedor || '').toLowerCase().includes(myName)) return false
+      }
+      if (permissions?.seeOnlyAssignedInstrumentador && myName) {
+        if (!(item.instrumentadores || '').toLowerCase().includes(myName)) return false
+      }
+      // ── Filtros de interface ──
       if (filterStatus && item.status !== filterStatus) return false
       if (filterAutorizada && !item.autorizada) return false
       if (filterData === 'hoje'    && item.data !== today) return false
@@ -183,7 +195,7 @@ export default function AgendaList() {
     }).sort((a, b) =>
       a.data !== b.data ? a.data.localeCompare(b.data) : (a.horaCirurgia || '').localeCompare(b.horaCirurgia || '')
     )
-  }, [items, search, filterStatus, filterData])
+  }, [items, search, filterStatus, filterData, filterAutorizada, permissions, user])
 
   async function handleStatusChange(id: string, status: AgendaStatus) {
     await updateAgendaStatus(id, status); reload()
@@ -242,7 +254,7 @@ export default function AgendaList() {
             Filtros
             {hasFilters && <span className="w-2 h-2 rounded-full" style={{ background: '#007AFF' }} />}
           </button>
-          {(canEdit || isAdmin) && (
+          {canCreate && (
             <button onClick={() => navigate('/requisicoes/nova')} className="btn-primary">
               <Plus className="w-4 h-4" />
               <span className="sm:hidden">Agendar</span>
@@ -301,7 +313,7 @@ export default function AgendaList() {
       </div>
 
       {/* ── Bulk action bar ── */}
-      {isAdmin && selectedIds.size > 0 && (
+      {(isAdmin || permissions?.isGestor) && selectedIds.size > 0 && (
         <div className="flex items-center gap-3 rounded-xl px-4 py-2.5"
           style={{ background: 'rgba(0,122,255,0.08)', border: '1px solid rgba(0,122,255,0.2)' }}>
           <span className="text-sm font-semibold flex-shrink-0" style={{ color: '#007AFF' }}>
@@ -345,7 +357,7 @@ export default function AgendaList() {
               <table className="w-full text-sm">
                 <thead>
                   <tr style={{ background: T.thead, borderBottom: `1px solid ${T.divider}` }}>
-                    {isAdmin && (
+                    {(isAdmin || permissions?.isGestor) && (
                       <th className="px-3 py-3 w-8">
                         <input type="checkbox" className="rounded"
                           checked={selectedIds.size === filtered.length && filtered.length > 0}
@@ -373,7 +385,7 @@ export default function AgendaList() {
                               ? 'rgba(0,122,255,0.06)'
                               : idx % 2 === 0 ? T.card : T.stripeBg,
                         }}>
-                        {isAdmin && (
+                        {(isAdmin || permissions?.isGestor) && (
                           <td className="px-3 py-3">
                             <input type="checkbox" className="rounded"
                               checked={selectedIds.has(item.id)} onChange={() => toggleSelect(item.id)} />
@@ -430,21 +442,27 @@ export default function AgendaList() {
                               title="E-mail">
                               <Mail className="w-3.5 h-3.5" />
                             </button>
-                            <button onClick={() => setEditItem(item)}
-                              className="p-1.5 rounded-lg transition-colors"
-                              style={{ color: T.text3 }}
-                              onMouseEnter={e => (e.currentTarget.style.color = '#007AFF')}
-                              onMouseLeave={e => (e.currentTarget.style.color = T.text3)}
-                              title="Editar">
-                              <Edit2 className="w-3.5 h-3.5" />
-                            </button>
-                            <div className="w-px h-4 mx-0.5" style={{ background: T.divider }} />
-                            <button onClick={() => handleDelete(item)}
-                              className="p-1.5 rounded-lg transition-colors"
-                              style={{ background: 'rgba(255,59,48,0.08)', color: '#FF3B30' }}
-                              title="Excluir">
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                            {canEditAny && (
+                              <button onClick={() => setEditItem(item)}
+                                className="p-1.5 rounded-lg transition-colors"
+                                style={{ color: T.text3 }}
+                                onMouseEnter={e => (e.currentTarget.style.color = '#007AFF')}
+                                onMouseLeave={e => (e.currentTarget.style.color = T.text3)}
+                                title="Editar">
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                            {canDelete && (
+                              <>
+                                <div className="w-px h-4 mx-0.5" style={{ background: T.divider }} />
+                                <button onClick={() => handleDelete(item)}
+                                  className="p-1.5 rounded-lg transition-colors"
+                                  style={{ background: 'rgba(255,59,48,0.08)', color: '#FF3B30' }}
+                                  title="Excluir">
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -528,16 +546,20 @@ export default function AgendaList() {
                         style={{ background: T.card, border: `1px solid ${T.cardBorder}`, color: T.text2 }}>
                         <Share2 className="w-3.5 h-3.5" /> Enviar
                       </button>
-                      <button onClick={() => setEditItem(item)}
-                        className="p-2 rounded-full active:scale-95 transition-all"
-                        style={{ color: T.text3 }}>
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button onClick={() => handleDelete(item)}
-                        className="p-2 rounded-full active:scale-95 transition-all"
-                        style={{ color: '#FF3B30' }}>
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {canEditAny && (
+                        <button onClick={() => setEditItem(item)}
+                          className="p-2 rounded-full active:scale-95 transition-all"
+                          style={{ color: T.text3 }}>
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                      )}
+                      {canDelete && (
+                        <button onClick={() => handleDelete(item)}
+                          className="p-2 rounded-full active:scale-95 transition-all"
+                          style={{ color: '#FF3B30' }}>
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
 

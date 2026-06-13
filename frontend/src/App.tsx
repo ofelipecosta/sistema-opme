@@ -23,17 +23,18 @@ function TVPage() {
   return <TVDashboard onExit={() => navigate('/')} />
 }
 
-function ProtectedRoute({ children, adminOnly }: { children: React.ReactNode; adminOnly?: boolean }) {
-  const { user, loading, isAdmin } = useAuth()
+function ProtectedRoute({ children, navKey }: { children: React.ReactNode; navKey?: keyof import('./utils/permissions').Permissions['nav'] }) {
+  const { user, loading, permissions } = useAuth()
   if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" /></div>
   if (!user) return <Navigate to="/login" replace />
-  if (adminOnly && !isAdmin) return <Navigate to="/" replace />
+  if (navKey && !permissions?.nav[navKey]) return <Navigate to={permissions?.landingPath ?? '/'} replace />
   return <>{children}</>
 }
 
-function VendorIndex() {
-  const { user } = useAuth()
-  if (user?.perfil === 'vendedor') return <Navigate to="/requisicoes/nova" replace />
+function RoleIndex() {
+  const { permissions } = useAuth()
+  const landing = permissions?.landingPath
+  if (landing && landing !== '/') return <Navigate to={landing} replace />
   return <Dashboard />
 }
 
@@ -44,20 +45,20 @@ function AppRoutes() {
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
       <Route path="/tv" element={<ProtectedRoute><TVPage /></ProtectedRoute>} />
       <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-        <Route index element={<VendorIndex />} />
-        <Route path="requisicoes" element={<AgendaList />} />
-        <Route path="requisicoes/nova" element={<RequisitionForm />} />
-        <Route path="requisicoes/:id" element={<RequisitionDetail />} />
-        <Route path="requisicoes/:id/editar" element={<RequisitionForm />} />
-        <Route path="separacao" element={<MaterialSeparation />} />
-        <Route path="usuarios" element={<ProtectedRoute adminOnly><UserList /></ProtectedRoute>} />
-        <Route path="usuarios/novo" element={<ProtectedRoute adminOnly><UserForm /></ProtectedRoute>} />
-        <Route path="usuarios/:id/editar" element={<ProtectedRoute adminOnly><UserForm /></ProtectedRoute>} />
-        <Route path="relatorios" element={<ProtectedRoute adminOnly><Reports /></ProtectedRoute>} />
-        <Route path="controle" element={<ProtectedRoute adminOnly><ControleCirurgias /></ProtectedRoute>} />
-        <Route path="importar" element={<ProtectedRoute adminOnly><ImportPage /></ProtectedRoute>} />
-        <Route path="configuracoes" element={<ProtectedRoute adminOnly><SettingsPage /></ProtectedRoute>} />
-        <Route path="cadastros" element={<ProtectedRoute adminOnly><CadastrosPage /></ProtectedRoute>} />
+        <Route index element={<RoleIndex />} />
+        <Route path="requisicoes" element={<ProtectedRoute navKey="agendamento"><AgendaList /></ProtectedRoute>} />
+        <Route path="requisicoes/nova" element={<ProtectedRoute navKey="agendamento"><RequisitionForm /></ProtectedRoute>} />
+        <Route path="requisicoes/:id" element={<ProtectedRoute navKey="agendamento"><RequisitionDetail /></ProtectedRoute>} />
+        <Route path="requisicoes/:id/editar" element={<ProtectedRoute navKey="agendamento"><RequisitionForm /></ProtectedRoute>} />
+        <Route path="separacao" element={<ProtectedRoute navKey="separacao"><MaterialSeparation /></ProtectedRoute>} />
+        <Route path="usuarios" element={<ProtectedRoute navKey="usuarios"><UserList /></ProtectedRoute>} />
+        <Route path="usuarios/novo" element={<ProtectedRoute navKey="usuarios"><UserForm /></ProtectedRoute>} />
+        <Route path="usuarios/:id/editar" element={<ProtectedRoute navKey="usuarios"><UserForm /></ProtectedRoute>} />
+        <Route path="relatorios" element={<ProtectedRoute navKey="relatorios"><Reports /></ProtectedRoute>} />
+        <Route path="controle" element={<ProtectedRoute navKey="controle"><ControleCirurgias /></ProtectedRoute>} />
+        <Route path="importar" element={<ProtectedRoute navKey="importar"><ImportPage /></ProtectedRoute>} />
+        <Route path="configuracoes" element={<ProtectedRoute navKey="configuracoes"><SettingsPage /></ProtectedRoute>} />
+        <Route path="cadastros" element={<ProtectedRoute navKey="cadastros"><CadastrosPage /></ProtectedRoute>} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
