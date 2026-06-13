@@ -129,22 +129,34 @@ function ActionMenu({ onEdit, onDuplicate, onDelete }: {
   onDelete: () => void
 }) {
   const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
+  const [pos, setPos] = useState({ top: 0, left: 0 })
+  const btnRef = useRef<HTMLButtonElement>(null)
   const T = useT()
 
   useEffect(() => {
     if (!open) return
     function close(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+      setOpen(false)
     }
     document.addEventListener('mousedown', close)
     return () => document.removeEventListener('mousedown', close)
   }, [open])
 
+  function handleOpen(e: React.MouseEvent) {
+    e.stopPropagation()
+    if (!btnRef.current) return
+    const rect = btnRef.current.getBoundingClientRect()
+    const menuH = 120
+    const top = rect.bottom + window.scrollY + 4
+    const left = rect.right - 160
+    setPos({ top: top + menuH > window.innerHeight + window.scrollY ? rect.top + window.scrollY - menuH - 4 : top, left })
+    setOpen(o => !o)
+  }
+
   const item = (label: string, icon: React.ReactNode, action: () => void, danger = false) => (
     <button
-      onClick={() => { action(); setOpen(false) }}
-      className="flex items-center gap-2.5 w-full px-3 py-2 text-xs font-medium rounded-lg transition-colors text-left"
+      onMouseDown={e => { e.stopPropagation(); action(); setOpen(false) }}
+      className="flex items-center gap-2.5 w-full px-3 py-2 text-xs font-medium rounded-lg text-left"
       style={{ color: danger ? '#EF4444' : T.text2 }}
       onMouseEnter={e => (e.currentTarget.style.background = danger ? 'rgba(239,68,68,0.08)' : T.inputBg)}
       onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
@@ -154,9 +166,10 @@ function ActionMenu({ onEdit, onDuplicate, onDelete }: {
   )
 
   return (
-    <div ref={ref} className="relative">
+    <>
       <button
-        onClick={() => setOpen(o => !o)}
+        ref={btnRef}
+        onClick={handleOpen}
         className="p-1.5 rounded-lg transition-colors"
         style={{ color: T.text3 }}
         onMouseEnter={e => (e.currentTarget.style.background = T.inputBg)}
@@ -166,8 +179,8 @@ function ActionMenu({ onEdit, onDuplicate, onDelete }: {
       </button>
       {open && (
         <div
-          className="absolute right-0 z-30 w-40 p-1 rounded-xl shadow-xl"
-          style={{ background: T.card, border: `1px solid ${T.cardBorder}`, top: '100%', marginTop: 4 }}
+          className="fixed z-50 w-40 p-1 rounded-xl shadow-xl"
+          style={{ top: pos.top, left: pos.left, background: T.card, border: `1px solid ${T.cardBorder}` }}
         >
           {item('Editar', <Edit2 size={13} />, onEdit)}
           {item('Duplicar', <Copy size={13} />, onDuplicate)}
@@ -175,7 +188,7 @@ function ActionMenu({ onEdit, onDuplicate, onDelete }: {
           {item('Excluir', <Trash2 size={13} />, onDelete, true)}
         </div>
       )}
-    </div>
+    </>
   )
 }
 
