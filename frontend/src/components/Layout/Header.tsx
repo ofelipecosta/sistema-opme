@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Bell, FileText, AlertTriangle, CheckCircle2, Trash2, Moon, Sun } from 'lucide-react'
+import { Menu, Bell, FileText, AlertTriangle, CheckCircle2, Trash2, Moon, Sun } from 'lucide-react'
 import { useTheme } from '../../contexts/ThemeContext'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
@@ -11,6 +11,7 @@ const NOTIF_CLEARED_KEY = 'opme_notif_cleared_at'
 function getNotifClearedAt(): string { return localStorage.getItem(NOTIF_CLEARED_KEY) || '' }
 function clearNotifications(): void  { localStorage.setItem(NOTIF_CLEARED_KEY, new Date().toISOString()) }
 
+interface Props { onMenuClick: () => void }
 
 const titles: Record<string, string> = {
   '/':                 'Dashboard',
@@ -24,7 +25,7 @@ const titles: Record<string, string> = {
   '/separacao':        'Separação de Materiais',
 }
 
-export default function Header() {
+export default function Header({ onMenuClick }: Props) {
   const location  = useLocation()
   const navigate  = useNavigate()
   const { canEdit, isAdmin, user } = useAuth()
@@ -61,7 +62,6 @@ export default function Header() {
     setShowNotif(false)
   }
 
-  // Close on outside click
   useEffect(() => {
     function handler(e: MouseEvent) {
       if (notifRef.current && !notifRef.current.contains(e.target as Node)) setShowNotif(false)
@@ -73,10 +73,15 @@ export default function Header() {
   return (
     <header className="px-4 h-14 flex items-center gap-3 sticky top-0 z-10"
       style={{ background: hBg, backdropFilter: 'blur(20px) saturate(1.8)', borderBottom: `1px solid ${hBorder}` }}>
-<h1 className="text-sm font-semibold flex-1 truncate" style={{ color: hText, letterSpacing: '-0.01em' }}>{title}</h1>
+
+      {/* Hamburger — mobile only */}
+      <button onClick={onMenuClick} className="lg:hidden p-1.5 rounded-lg transition-colors flex-shrink-0" style={{ color: hText3 }}>
+        <Menu className="w-5 h-5" />
+      </button>
+
+      <h1 className="text-sm font-semibold flex-1 truncate" style={{ color: hText, letterSpacing: '-0.01em' }}>{title}</h1>
 
       <div className="flex items-center gap-2">
-        {/* Dark mode toggle */}
         <button onClick={toggleTheme}
           className="p-2 rounded-xl transition-colors"
           style={{ color: hText3, background: isDark ? 'rgba(255,255,255,0.08)' : 'transparent' }}
@@ -84,7 +89,6 @@ export default function Header() {
           {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
         </button>
 
-        {/* Notification bell */}
         <div ref={notifRef} className="relative">
           <button
             onClick={() => setShowNotif(v => !v)}
@@ -103,13 +107,11 @@ export default function Header() {
           {showNotif && (
             <div className="absolute right-0 top-10 w-80 rounded-2xl z-50 overflow-hidden"
               style={{ background: isDark ? 'rgba(31,41,55,0.98)' : 'rgba(255,255,255,0.96)', backdropFilter: 'blur(30px) saturate(1.8)', border: `1px solid ${hBorder}`, boxShadow: '0 12px 40px rgba(0,0,0,0.20)' }}>
-              {/* Header */}
               <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
                 <p className="text-sm font-semibold" style={{ color: '#1D1D1F' }}>Agendamentos</p>
                 <span className="text-xs" style={{ color: '#8E8E93' }}>{pendingCount} pendente{pendingCount !== 1 ? 's' : ''}</span>
               </div>
 
-              {/* List */}
               <div className="max-h-72 overflow-y-auto">
                 {recent.length === 0 ? (
                   <div className="py-8 text-center">
@@ -141,7 +143,6 @@ export default function Header() {
                 ))}
               </div>
 
-              {/* Footer */}
               <div className="px-4 py-2.5 flex items-center justify-between" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
                 <button onClick={() => { navigate('/requisicoes'); setShowNotif(false) }}
                   className="text-xs font-medium transition-colors" style={{ color: '#007AFF' }}>

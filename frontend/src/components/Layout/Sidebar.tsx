@@ -2,7 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, CalendarDays, Users, BarChart2, Stethoscope,
   LogOut, Upload, Settings, Tv, Package, ClipboardList,
-  ChevronDown, PanelLeftClose, PanelLeftOpen, BookOpen, UserCheck,
+  ChevronDown, PanelLeftClose, PanelLeftOpen, BookOpen, UserCheck, X,
 } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTheme } from '../../contexts/ThemeContext'
@@ -12,6 +12,8 @@ import { useState } from 'react'
 interface Props {
   collapsed: boolean
   onToggleCollapse: () => void
+  mobileOpen: boolean
+  onMobileClose: () => void
 }
 
 const ALL_MAIN = [
@@ -32,7 +34,7 @@ const ALL_CONFIG = [
 
 const ALL_CONFIG_PATHS = ALL_CONFIG.map(i => i.to)
 
-export default function Sidebar({ collapsed, onToggleCollapse }: Props) {
+export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onMobileClose }: Props) {
   const { user, logout, permissions } = useAuth()
   const nav = permissions?.nav
   const { isDark } = useTheme()
@@ -58,7 +60,11 @@ export default function Sidebar({ collapsed, onToggleCollapse }: Props) {
     <aside
       className={cn(
         'flex flex-col flex-shrink-0 transition-all duration-300 overflow-hidden',
-        col ? 'w-[60px]' : 'w-60'
+        // Mobile: fixed overlay, hidden unless mobileOpen
+        'fixed inset-y-0 left-0 z-30 w-64',
+        mobileOpen ? 'translate-x-0' : '-translate-x-full',
+        // Desktop: always visible, static, respects collapsed width
+        col ? 'lg:translate-x-0 lg:static lg:z-auto lg:w-[60px]' : 'lg:translate-x-0 lg:static lg:z-auto lg:w-60'
       )}
       style={{
         background: bg,
@@ -67,23 +73,29 @@ export default function Sidebar({ collapsed, onToggleCollapse }: Props) {
       }}
     >
       {/* Logo */}
-      <div className="flex items-center h-16 flex-shrink-0 px-3" style={{ borderBottom: `1px solid ${border}` }}>
+      <div className="flex items-center h-16 flex-shrink-0 px-3 gap-2" style={{ borderBottom: `1px solid ${border}` }}>
         {col ? (
           <div className="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm mx-auto flex-shrink-0"
             style={{ background: 'linear-gradient(135deg, #2563EB 0%, #60a5fa 100%)' }}>
             <Stethoscope className="w-4 h-4 text-white" />
           </div>
         ) : (
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center shadow-sm"
-              style={{ background: 'linear-gradient(135deg, #2563EB 0%, #60a5fa 100%)' }}>
-              <Stethoscope className="w-4 h-4 text-white" />
+          <>
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+              <div className="w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center shadow-sm"
+                style={{ background: 'linear-gradient(135deg, #2563EB 0%, #60a5fa 100%)' }}>
+                <Stethoscope className="w-4 h-4 text-white" />
+              </div>
+              <div className="leading-none min-w-0">
+                <p className="font-bold text-sm tracking-tight truncate" style={{ color: text1 }}>Sistema OPME</p>
+                <p className="text-xs mt-0.5 font-medium" style={{ color: text3 }}>NOS</p>
+              </div>
             </div>
-            <div className="leading-none min-w-0">
-              <p className="font-bold text-sm tracking-tight truncate" style={{ color: text1 }}>Sistema OPME</p>
-              <p className="text-xs mt-0.5 font-medium" style={{ color: text3 }}>NOS</p>
-            </div>
-          </div>
+            {/* Close button — mobile only */}
+            <button onClick={onMobileClose} className="lg:hidden p-1.5 rounded-lg flex-shrink-0" style={{ color: text3 }}>
+              <X className="w-4 h-4" />
+            </button>
+          </>
         )}
       </div>
 
@@ -96,6 +108,7 @@ export default function Sidebar({ collapsed, onToggleCollapse }: Props) {
         {visibleMain.map(item => (
           <NavLink
             key={item.to} to={item.to} end={item.end}
+            onClick={onMobileClose}
             title={col ? item.label : undefined}
             className={({ isActive }) => cn(
               'flex items-center gap-2.5 rounded-xl text-sm font-medium transition-all duration-150',
@@ -119,6 +132,7 @@ export default function Sidebar({ collapsed, onToggleCollapse }: Props) {
         {/* Painel TV */}
         {nav?.configuracoes && (
           <a href="/tv" target="_blank" rel="noopener noreferrer"
+            onClick={onMobileClose}
             title={col ? 'Painel TV' : undefined}
             className={cn(
               'flex items-center gap-2.5 rounded-xl text-sm font-medium transition-all duration-150',
@@ -160,6 +174,7 @@ export default function Sidebar({ collapsed, onToggleCollapse }: Props) {
                 {visibleConfig.map(item => (
                   <NavLink
                     key={item.to} to={item.to}
+                    onClick={onMobileClose}
                     className={({ isActive }) => cn(
                       'flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150',
                       isActive ? '' : 'hover:bg-black/[0.04]'
