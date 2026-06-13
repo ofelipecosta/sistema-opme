@@ -4,7 +4,7 @@ import { Search, Plus, Check, X } from 'lucide-react'
 export interface AutocompleteOption {
   id: string
   nome: string
-  sub?: string  // optional subtitle (especialidade, cidade, etc.)
+  sub?: string
 }
 
 interface Props {
@@ -36,8 +36,10 @@ export default function AutocompleteInput({
   const [open, setOpen] = useState(false)
   const [creating, setCreating] = useState(false)
   const [activeIdx, setActiveIdx] = useState(-1)
+  const [pos, setPos] = useState({ top: 0, left: 0, width: 0 })
   const containerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   const filtered = options.filter(o =>
     o.nome.toLowerCase().includes((value || '').toLowerCase().trim())
@@ -46,23 +48,45 @@ export default function AutocompleteInput({
   const hasExactMatch = options.some(o => o.nome.toLowerCase() === (value || '').toLowerCase().trim())
   const showCreate = allowCreate && onCreateNew && value.trim().length > 1 && !hasExactMatch
 
+  function calcPos() {
+    if (!inputRef.current) return
+    const rect = inputRef.current.getBoundingClientRect()
+    setPos({ top: rect.bottom + 4, left: rect.left, width: rect.width })
+  }
+
   useEffect(() => {
-    function close(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+    function onMouseDown(e: MouseEvent) {
+      const target = e.target as Node
+      const inContainer = containerRef.current?.contains(target)
+      const inDropdown = dropdownRef.current?.contains(target)
+      if (!inContainer && !inDropdown) {
         setOpen(false)
         setActiveIdx(-1)
       }
     }
-    document.addEventListener('mousedown', close)
-    return () => document.removeEventListener('mousedown', close)
-  }, [])
+    function onScroll() { if (open) calcPos() }
+    document.addEventListener('mousedown', onMouseDown)
+    window.addEventListener('scroll', onScroll, true)
+    window.addEventListener('resize', onScroll)
+    return () => {
+      document.removeEventListener('mousedown', onMouseDown)
+      window.removeEventListener('scroll', onScroll, true)
+      window.removeEventListener('resize', onScroll)
+    }
+  }, [open])
 
   const handleInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const v = uppercase ? e.target.value.toUpperCase() : e.target.value
     onChange(v)
+    calcPos()
     setOpen(true)
     setActiveIdx(-1)
   }, [onChange, uppercase])
+
+  function handleFocus() {
+    calcPos()
+    setOpen(true)
+  }
 
   function handleSelect(opt: AutocompleteOption) {
     onChange(opt.nome)
@@ -111,7 +135,7 @@ export default function AutocompleteInput({
           type="text"
           value={value}
           onChange={handleInput}
-          onFocus={() => setOpen(true)}
+          onFocus={handleFocus}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={disabled}
@@ -135,8 +159,19 @@ export default function AutocompleteInput({
       </div>
 
       {open && (filtered.length > 0 || showCreate) && (
-        <div className="absolute left-0 right-0 z-40 mt-1 bg-white rounded-xl border border-slate-200 shadow-xl overflow-hidden"
-          style={{ maxHeight: 260, overflowY: 'auto' }}>
+        <div
+          ref={dropdownRef}
+          style={{
+            position: 'fixed',
+            top: pos.top,
+            left: pos.left,
+            width: pos.width,
+            zIndex: 9999,
+            maxHeight: 260,
+            overflowY: 'auto',
+          }}
+          className="bg-white rounded-xl border border-slate-200 shadow-xl overflow-hidden"
+        >
           {filtered.map((opt, i) => (
             <button
               key={opt.id}
