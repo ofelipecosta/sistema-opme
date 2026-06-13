@@ -16,7 +16,6 @@ import { shareWhatsApp, shareEmail } from '../../utils/share'
 import { loadSettings } from '../../utils/settings-storage'
 import type { Requisition, OPMEItem } from '../../types'
 import AutocompleteInput, { type AutocompleteOption } from '../../components/AutocompleteInput'
-import KitChecklist from '../../components/KitChecklist'
 import FileUploadArea, { type PendingFile } from '../../components/FileUploadArea'
 import {
   getMedicos, createMedico,
@@ -57,7 +56,6 @@ export default function RequisitionForm() {
   const [convenios,    setConvenios]    = useState<Convenio[]>([])
   const [procedimentos,setProcedimentos]= useState<Procedimento[]>([])
   const [kitItems,     setKitItems]     = useState<KitItem[]>([])
-  const [kitSelected,  setKitSelected]  = useState<Set<string>>(new Set())
   const [selectedProcId, setSelectedProcId] = useState<string | null>(null)
 
   // Files
@@ -100,28 +98,25 @@ export default function RequisitionForm() {
   }, [id, isEdit, reset])
 
   async function handleProcedimentoSelect(opt: AutocompleteOption) {
-    if (!opt.id) { setKitItems([]); setKitSelected(new Set()); setSelectedProcId(null); return }
+    if (!opt.id) { setKitItems([]); setSelectedProcId(null); return }
     setSelectedProcId(opt.id)
     try {
       const items = await getKitItems(opt.id)
       setKitItems(items)
-      setKitSelected(new Set(items.map(i => i.id)))
+      // Auto-populate materiais — skip items already in the list
+      let added = 0
+      for (const item of items) {
+        const exists = fields.some(f => f.descricao?.toLowerCase() === item.nome.toLowerCase())
+        if (!exists) {
+          append({ id: Math.random().toString(36).substr(2,9), codigo:'', descricao: item.nome, fabricante:'', quantidade:1, unidade:'UN', observacao:'' } as OPMEItem)
+          added++
+        }
+      }
+      if (added > 0) toast.success(`${added} ${added === 1 ? 'material do kit adicionado' : 'materiais do kit adicionados'} automaticamente`)
+      else if (items.length > 0) toast(`Materiais já estão na lista`, { icon: 'ℹ️' })
     } catch {
       setKitItems([])
-      setKitSelected(new Set())
     }
-  }
-
-  function applyKit() {
-    const selected = kitItems.filter(i => kitSelected.has(i.id))
-    // Remove existing kit-added items (can't distinguish, so just append)
-    for (const item of selected) {
-      const alreadyExists = fields.some(f => f.descricao?.toLowerCase() === item.nome.toLowerCase())
-      if (!alreadyExists) {
-        append({ id: Math.random().toString(36).substr(2,9), codigo:'', descricao: item.nome, fabricante:'', quantidade:1, unidade:'UN', observacao:'' } as OPMEItem)
-      }
-    }
-    if (selected.length) toast.success(`${selected.length} ${selected.length === 1 ? 'item adicionado' : 'itens adicionados'} ao material`)
   }
 
   function addMaterial() {
@@ -293,22 +288,13 @@ export default function RequisitionForm() {
           <input type="hidden" {...register('cirurgiaProcedimento', { required: 'Informe o procedimento' })} />
         </MobileField>
 
-        {/* Kit checklist — shown when procedimento has kit items */}
+        {/* Kit info badge — shown when procedimento has a kit */}
         {kitItems.length > 0 && (
-          <div>
-            <KitChecklist
-              procedimentoNome={watch('cirurgiaProcedimento') || ''}
-              items={kitItems}
-              selected={kitSelected}
-              onChange={setKitSelected}
-            />
-            <button
-              type="button"
-              onClick={applyKit}
-              className="mt-2 w-full py-2.5 rounded-xl text-sm font-semibold text-primary-700 bg-primary-50 border border-primary-200 hover:bg-primary-100 transition-colors"
-            >
-              Adicionar {kitSelected.size} {kitSelected.size === 1 ? 'item' : 'itens'} ao material →
-            </button>
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-primary-50 border border-primary-100">
+            <span className="text-primary-500 text-xs">✓</span>
+            <p className="text-xs text-primary-700 font-medium">
+              Kit padrão aplicado: {kitItems.length} {kitItems.length === 1 ? 'material' : 'materiais'} adicionados — edite à vontade abaixo
+            </p>
           </div>
         )}
 
