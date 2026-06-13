@@ -137,25 +137,6 @@ export default function RequisitionDetail() {
         </div>
       </div>
 
-      {/* Status flow */}
-      {canChangeStatus && req.status !== 'finalizada' && req.status !== 'cancelada' && (
-        <div className="card p-4">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Avançar Status</p>
-          <div className="flex flex-wrap gap-2">
-            {nextStatuses.map(s => (
-              <button key={s} onClick={() => advanceStatus(s)} className="btn-success btn-sm">
-                <ChevronRight className="w-3.5 h-3.5" />
-                {STATUS_FLOW_LABELS[s]}
-              </button>
-            ))}
-            {req.status !== 'cancelada' && (
-              <button onClick={cancelReq} className="btn-danger btn-sm">
-                <XCircle className="w-3.5 h-3.5" /> Cancelar
-              </button>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Info grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
